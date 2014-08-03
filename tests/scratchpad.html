@@ -1,0 +1,256 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Testing code</title>
+		<script src="../src/helpers.js"></script>
+		<script src="../src/css-sizing.js"></script>
+		<script src="../src/css-syntax.js"></script>
+		<script src="../src/css-grid-model.js"></script>
+	</head>
+	<body>
+
+		<section id="main"></section>
+		<pre><script>
+				
+			var LOCATE_LINE  = cssGrid.LOCATE_LINE;
+			var LOCATE_SPAN  = cssGrid.LOCATE_SPAN; 
+			var LOCATE_AREA  = cssGrid.LOCATE_AREA;
+			var LOCATE_AUTO  = cssGrid.LOCATE_AUTO;
+			
+			var ALIGN_START  = cssGrid.ALIGN_START;
+			var ALIGN_CENTER = cssGrid.ALIGN_CENTER;
+			var ALIGN_END    = cssGrid.ALIGN_END;
+			var ALIGN_FIT    = cssGrid.ALIGN_FIT;
+			
+			var TRACK_BREADTH_AUTO        = cssGrid.TRACK_BREADTH_AUTO;
+			var TRACK_BREADTH_LENGTH      = cssGrid.TRACK_BREADTH_LENGTH;
+			var TRACK_BREADTH_FRACTION    = cssGrid.TRACK_BREADTH_FRACTION;
+			var TRACK_BREADTH_PERCENTAGE  = cssGrid.TRACK_BREADTH_PERCENTAGE;
+			var TRACK_BREADTH_MIN_CONTENT = cssGrid.TRACK_BREADTH_MIN_CONTENT;
+			var TRACK_BREADTH_MAX_CONTENT = cssGrid.TRACK_BREADTH_MAX_CONTENT;
+			
+			function test_grid_row_parser() { 
+				var valid_inputs = [
+					"3", 
+					"3/4",
+					"LINE_NAME",
+					"span 2",
+					"span 2 / LINE_NAME", 
+					"span 5 LINE_NAME",
+					"span LINE_NAME 5",
+					"span 2 / span 3",
+				];
+				
+				var valid_results = [
+					{start:{type:LOCATE_LINE,index:3},end:{type:LOCATE_AUTO}},
+					{start:{type:LOCATE_LINE,index:3},end:{type:LOCATE_LINE,index:4}},
+					{start:{type:LOCATE_LINE,name:"LINE_NAME",index:1},end:{type:LOCATE_LINE,name:"LINE_NAME",index:1}},
+					{start:{type:LOCATE_SPAN,index:2},end:{type:LOCATE_AUTO}},
+					{start:{type:LOCATE_SPAN,index:2},end:{type:LOCATE_LINE,name:"LINE_NAME",index:1}},
+					{start:{type:LOCATE_SPAN,name:"LINE_NAME",index:5},end:{type:LOCATE_AUTO}},
+					{start:{type:LOCATE_SPAN,name:"LINE_NAME",index:5},end:{type:LOCATE_AUTO}},
+					{start:{type:LOCATE_SPAN,index:2},end:{type:LOCATE_AUTO}},
+				]
+				
+				console.error_impl = console.error;
+				console.error = function() { debugger; console.error_impl.apply(console, arguments); }
+
+				for(var i = valid_inputs.length; i--;) {
+				
+					var gi = new cssGrid.GridItem(), inp = valid_inputs[i];
+					gi.buggy = false;
+					gi.parseLocationInstructions(gi.specifiedXStart, gi.specifiedXEnd, inp);
+
+					var th = valid_results[i];
+					
+					console.log(inp);
+					console.log("?"+JSON.stringify(gi.specifiedXStart));
+					console.log("="+JSON.stringify(th.start));
+					console.log("?"+JSON.stringify(gi.specifiedXEnd));
+					console.log("="+JSON.stringify(th.end));
+					console.log("");
+					
+					if(gi.buggy) { debugger; }
+					
+					if(gi.specifiedXStart.type != th.start.type) { debugger; }
+					if(gi.specifiedXStart.name != th.start.name) { debugger; }
+					if(gi.specifiedXStart.index != th.start.index) { debugger; }
+					
+					if(gi.specifiedXEnd.type != th.end.type) { debugger; }
+					if(gi.specifiedXEnd.name != th.end.name) { debugger; }
+					if(gi.specifiedXEnd.index != th.end.index) { debugger; }
+					
+				}
+				
+				
+				var invalid_inputs = [
+					"0",
+					"3.5",
+					"span C -1",
+					"span C 1 2",
+					"span C 1 / / 3",
+					"span C 1 / span C 1 /",
+				];
+				
+				console.error = function(txt) { console.log("Test passed: " + txt); };
+				
+				for(var i = invalid_inputs.length; i--;) {
+				
+					var gi = new cssGrid.GridItem(), inp = invalid_inputs[i];
+					gi.buggy = false;
+					gi.parseLocationInstructions(gi.specifiedXStart, gi.specifiedXEnd, inp);
+
+					if(!gi.buggy) { 
+						console.error("Invalid declaration accepted: "+inp);
+						debugger;
+					}
+					
+				}
+				
+				console.error = console.error_impl;
+				
+			}
+			
+			function test_grid_template_rows_parser() {
+				
+				var valid_inputs = [
+					"(start first) 1px () 2em minmax(auto, 1fr) (last end)"
+				];
+				
+				for(var i = valid_inputs.length; i--;) {
+				
+					var gl = new cssGrid.GridLayout(), inp = valid_inputs[i];
+					gl.parseTrackDefinitions(gl.specifiedXLines, gl.specifiedXSizes, inp);
+					
+					console.log(inp);
+					console.log("LINE-NAMES: " + JSON.stringify(gl.specifiedXLines));
+					console.log("LINE-SIZES: " + JSON.stringify(gl.specifiedXSizes));
+					console.log("");
+					
+				}
+				
+			}
+			
+			function test_grid_placement() {
+				
+				//throw "start debug here";
+				
+				var gle = document.createElement("div");
+				var gl = new cssGrid.GridLayout(gle);
+				
+				var explicitGrid = "(start) auto auto (end)";
+				gl.parseTrackDefinitions(gl.specifiedXLines, gl.specifiedXSizes, explicitGrid);
+				gl.parseTrackDefinitions(gl.specifiedYLines, gl.specifiedYSizes, explicitGrid);
+				gl.defaultYSize.setValue(TRACK_BREADTH_LENGTH, 50);
+				
+				function createInput(txt, gridArea, gridRow, gridCol) {
+					
+					var el = document.createElement("input");
+					el.type = "button"; el.value = txt;
+					if(gridArea) { el["grid-area"  ] = el.style["grid-area"  ] = gridArea; }
+					if(gridRow)  { el["grid-row"   ] = el.style["grid-row"   ] = gridRow;  }
+					if(gridCol)  { el["grid-column"] = el.style["grid-column"] = gridCol;  }
+					
+					gle.appendChild(el);
+					
+					return el;
+					
+				}
+				
+				var items = [
+					new cssGrid.GridItem(createInput("1","","1","1 / span 1"), gl),
+					new cssGrid.GridItem(createInput("2","","",""), gl),
+					new cssGrid.GridItem(createInput("3","","2 / span 2","auto"), gl),
+					new cssGrid.GridItem(createInput("4","","auto","2 / span 2"), gl),
+					new cssGrid.GridItem(createInput("5","","",""), gl),
+					new cssGrid.GridItem(createInput("6","","",""), gl),
+					new cssGrid.GridItem(createInput("7","","",""), gl),
+				];
+				
+				var tests = [
+					{
+						gridRow: "",
+						gridColumn: "",
+						result: "1,2,0 3,4,4 3,5,6 7,0,0".split(" ").join("\n")
+					},
+					{
+						gridRow: "1",
+						gridColumn: "1",
+						result: "2,4,4 3,5,6 3,7,0".split(" ").join("\n")
+					},
+					{
+						gridRow: "",
+						gridColumn: "1",
+						result: "1,0,0 3,0,0 3,0,0 2,4,4 5,6,7".split(" ").join("\n")
+					},
+					{
+						gridRow: "2",
+						gridColumn: "1",
+						result: "1,4,4 2,3,5 6,3,7".split(" ").join("\n")
+					},
+				];
+				
+				document.getElementById("main").appendChild(gle);
+				gl.items = items;
+				
+				// for each possible test:
+				for(var tests_index = 0, tests_max = tests.length; tests_index<tests_max; tests_index++) {
+					var test = tests[tests_index];
+					
+					// adapt the test
+					items[1].element["grid-row"   ] = test.gridRow;
+					items[1].element["grid-column"] = test.gridColumn;
+					
+					// update the representation
+					for(var i=items.length; i--;) { var item = items[i];
+						item.updateFromElement();
+					}
+					
+					// perfomr the layout
+					gl.performLayout();
+					
+					// display results
+					console.log(gl.rcMatrix.map(function(v) { var a = []; for(var i = v.length; i--;) { a[i]=v[i]?1:0; }; return ''+a; }).join('\n'));
+					var rcMatrix = gl.rcMatrix.map(function(v) { return v.map(function(v) { return 0; }) });
+					for(var y=rcMatrix.length; y--;) {
+						for(var x = rcMatrix[0].length; x--;) {
+							rcMatrix[y][x] = 0;
+						}
+					}
+					for(var i=0; i<items.length; i++) { var item = items[i];
+						console.log(item.element.value, "x[" + item.xStart + "/" + item.xEnd + "]", "y[" + item.yStart + "/" + item.yEnd + "]")
+						for(var x=item.xStart; x<item.xEnd; x++) {
+							for(var y=item.yStart; y<item.yEnd; y++) {
+								rcMatrix[y][x]=item.element.value;
+							}
+						}
+					}
+					
+					var result = rcMatrix.map(function(v) { return ''+v; }).join('\n');
+					if(result != test.result) {
+						// display expected result vs actual result
+						console.log(result+" [ACTUAL]\n");
+						console.log(test.result+" [EXPECTED]");
+					} else {
+						// display the correct actual result
+						console.log(result+" [OK]");
+					}
+					console.log("-----------------------------------------------------")
+					
+				}
+				
+				// generate the "ms-grid" style
+				gl.generateMSGridStyle()
+				
+				// to debug more easily:
+				window.gl = gl;
+				
+			}
+
+			//test_grid_row_parser();
+			//test_grid_template_rows_parser();
+			test_grid_placement();
+		
+		</script></pre>
+	</body>
+</html>

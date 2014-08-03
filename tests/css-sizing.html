@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Testing CSS Sizing</title>
+		<script src="../src/helpers.js"></script>
+		<script src="../src/css-sizing.js"></script>
+	</head>
+	<body>
+		<span id="el1" style="border: 3px solid black; padding: 3px;">SOME TEXT</span><br/><br/>
+		<div id="el2" style="border: 3px solid black; padding: 3px;">SOME TEXT</div><br/><br/>
+		<div id="el3" style="border: 3px solid black; padding: 3px; width: 50%; ">SOME TEXT</div><br/><br/>
+
+		<pre><script>
+			
+			function debug(el) {
+				document.writeln(cssSizing.absoluteMinWidthOf(el));
+				document.writeln(cssSizing.minWidthOf(el));
+				document.writeln(cssSizing.maxWidthOf(el));
+				document.writeln(cssSizing.absoluteMaxWidthOf(el));
+				document.writeln("");
+			}
+						
+			debug(el1=document.getElementById("el1")); 
+			debug(el2=document.getElementById("el2"));
+			debug(el3=document.getElementById("el3"));
+		
+		</script></pre>
+	</body>
+</html>
