@@ -1056,7 +1056,7 @@ var cssGrid = (function(window, document) {
 			
 			if(this.growY) {
 				
-				var infinity = 999999.0;
+				var infinity = 9999999.0;
 				var fullWidth = this.element.offsetWidth;
 				
 				// 
@@ -1177,11 +1177,108 @@ var cssGrid = (function(window, document) {
 							// 2. compute aggregated sizes
 							full_base += xSizes[cx].base;
 							full_limit += xSizes[cx].limit;
+							
 						}
 						if(full_limit > infinity) full_limit=infinity;
 						
-						var distributeFreeSpace = function(requiredSpace, kind /*'base'|'limit'*/) {
-							xSizes[x][kind] = 0;
+						var distributeFreeSpace = function(requiredSpace, kind /*'base'|'limit'*/, target /*'min-content'|'max-content'*/) {
+						
+							// internal function for simple distribution
+							function distributeEquallyAmongTracks(tracks, spaceToDistribute, enforceLimit) {
+								// Distribute space to base sizes up to growth limits
+								var trackAmount = tracks.length;
+								var spacePerTrack = spaceToDistribute/trackAmount;
+								for(var t = tracks.length; t--;) { var cx = tracks[t].x;
+									xSizes[cx].base += spacePerTrack;
+									if(enforceLimit && xSizes[cx].base > xSizes[cx].limit) {
+										xSizes[cx].base = xSizes[cx].limit;
+									}
+								}
+							}
+							
+							// compute the required extra space
+							var spaceToDistribute = requiredSpace;
+							for(var cx = item.xStart; cx<item.xEnd; cx++) {
+								spaceToDistribute -= xSizes[cx][kind];
+							}
+							if(spaceToDistribute<=0) return;
+
+							// sort rows by growth limit
+							var rows_and_limits = [];
+							for(var cx = item.xStart; cx<item.xEnd; cx++) {
+								rows_and_limits.push({ 
+									x:cx, 
+									base:xSizes[cx].base,
+									limit:xSizes[cx].limit,
+									minIsMinContent: this.xSizes[cx].minType == TRACK_BREADTH_MIN_CONTENT,
+									minIsMaxContent: this.xSizes[cx].minType == TRACK_BREADTH_MAX_CONTENT,
+									maxIsMinContent: this.xSizes[cx].maxType == TRACK_BREADTH_MIN_CONTENT,
+									maxIsMaxContent: this.xSizes[cx].maxType == TRACK_BREADTH_MAX_CONTENT
+								});
+							}
+							rows_and_limits.sort(function(a,b) { return a.limit-b.limit; });
+							
+							// apply the algorithm
+							if(kind=='base') {
+								
+								var tracks = rows_and_limits.filter(function(b) { return ((b.minIsMinContent||b.minIsMaxContent) && b.base<b.limit); }, 0);
+								var trackAmount = tracks.length;
+								if(trackAmount > 0) {
+									
+									distributeEquallyAmongTracks(tracks, spaceToDistribute, /*enforceLimit:*/true);
+										
+								} else {
+									
+									// Distribute space beyond growth limits
+									// If space remains after all tracks are frozen, unfreeze and continue to distribute space to… 
+									
+									// - when handling ‘min-content’ base sizes: 
+									if(target=='min-content') {
+										
+										// any affected track that happens to also have an intrinsic max track sizing function; 
+										var tracks = rows_and_limits.filter(function(b) { return ((b.minIsMinContent||b.minIsMaxContent) && (b.maxIsMinContent||b.maxIsMaxContent)); }, 0);
+										var trackAmount = tracks.length;
+										if(trackAmount>=1) {
+											
+											// (such tracks exist:)
+											distributeEquallyAmongTracks(tracks, spaceToDistribute, /*enforceLimit:*/false);
+											
+										} else {
+											
+											// if there are no such tracks, then all affected tracks. 
+											distributeEquallyAmongTracks(rows_and_limits, spaceToDistribute, /*enforceLimit:*/false);
+										}
+										
+									}
+									
+									// - when handling ‘max-content’ base sizes: 
+									if(target=='max-content') {
+										
+										// any affected track that happens to also have a ‘max-content’ max track sizing function;
+										var tracks = rows_and_limits.filter(function(b) { return ((b.minIsMinContent||b.minIsMaxContent) && (b.maxIsMaxContent)); }, 0);
+										var trackAmount = tracks.length;
+										if(trackAmount>=1) {
+											
+											// (such tracks exist:)
+											distributeEquallyAmongTracks(tracks, spaceToDistribute, /*enforceLimit:*/false);
+											
+										} else {
+											
+											// if there are no such tracks, then all affected tracks. 
+											distributeEquallyAmongTracks(rows_and_limits, spaceToDistribute, /*enforceLimit:*/false);
+										}
+										
+									}
+
+									var trackAmount = rows_and_limits.length;
+									var spacePerTrack = spaceToDistribute/trackAmount;
+									for(var cx = item.xStart; cx<item.xEnd; cx++) {
+										xSizes[cx].base += spacePerTrack;
+									}
+									
+								}
+								
+							}
 						}
 						
 						// 1. For intrinsic minimums: First increase the base size of tracks with a min track sizing function of ‘min-content’ or ‘max-content’ by distributing extra space as needed to account for these items' min-content contributions. 
@@ -1195,7 +1292,7 @@ var cssGrid = (function(window, document) {
 					}
 				}
 				
-				var ySizes = this.xSizes.map(function(v) { return {base:0.0, limit:999999.0} });
+				var ySizes = this.xSizes.map(function(v) { return {base:0.0, limit:infinity} });
 				
 			} else {
 				throw new Error("Not implemented");
