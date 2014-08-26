@@ -1240,7 +1240,7 @@ var cssGrid = (function(window, document) {
 				
 				// Next, consider the items with a span of 2 that do not span a track with a flexible sizing function: 
 				// Repeat incrementally for items with greater spans until all items have been considered.
-				for(var span = 2; items_done == this.items.length && span <= specifiedSizes.length; span++) {
+				for(var span = 2; items_done < this.items.length && span <= specifiedSizes.length; span++) {
 					ItemLoop: for(var i = this.items.length; i--;) { var item = this.items[i]; var item_xStart = getXStartOf(item); var item_xEnd = getXEndOf(item);
 						if(item_xEnd-item_xStart != span) continue ItemLoop;
 						
@@ -1249,7 +1249,6 @@ var cssGrid = (function(window, document) {
 						for(var cx = item_xStart; cx<item_xEnd; cx++) { 
 							
 							// 1. we want to make sure none is flexible
-							if(specifiedSizes[cx].minType == TRACK_BREADTH_FRACTION) continue ItemLoop;
 							if(specifiedSizes[cx].maxType == TRACK_BREADTH_FRACTION) continue ItemLoop;
 							
 							// 2. compute aggregated sizes
@@ -1260,7 +1259,7 @@ var cssGrid = (function(window, document) {
 						if(full_limit > infinity) full_limit=infinity;
 						
 						var distributeFreeSpace = function(requiredSpace, kind /*'base'|'limit'*/, target /*'min-content'|'max-content'*/) {
-													
+							
 							while (true) {
 							
 								// compute the required extra space
@@ -1370,14 +1369,14 @@ var cssGrid = (function(window, document) {
 						//
 						// 1. For intrinsic minimums: First increase the base size of tracks with a min track sizing function of ‘min-content’ or ‘max-content’ by distributing extra space as needed to account for these items' min-content contributions. 
 						//
-						distributeFreeSpace(item.minWidth, 'base', 'min-content');
+						distributeFreeSpace(getMinWidthOf(item), 'base', 'min-content');
 						updateInfiniteLimitFlag();
 						
 						
 						//
 						// 2. For max-content minimums: Next continue to increase the base size of tracks with a min track sizing function of ‘max-content’ by distributing extra space as needed to account for these items' max-content contributions. 
 						//
-						distributeFreeSpace(item.maxWidth, 'base', 'max-content');
+						distributeFreeSpace(getMaxWidthOf(item), 'base', 'max-content');
 						updateInfiniteLimitFlag();
 						
 						//
@@ -1385,12 +1384,12 @@ var cssGrid = (function(window, document) {
 						// Mark any tracks whose growth limit changed from infinite to finite in this step as infinitely growable for the next step. 
 						// (aka do not update infinity flag)
 						//
-						distributeFreeSpace(item.minWidth, 'limit', 'min-content');
+						distributeFreeSpace(getMinWidthOf(item), 'limit', 'min-content');
 						
 						//
 						// 4. For max-content maximums: Lastly continue to increase the growth limit of tracks with a max track sizing function of ‘max-content’ by distributing extra space as needed to account for these items' max-content contributions. 
 						//
-						distributeFreeSpace(item.maxWidth, 'limit', 'max-content');
+						distributeFreeSpace(getMaxWidthOf(item), 'limit', 'max-content');
 						updateInfiniteLimitFlag();
 						
 						items_done++;
