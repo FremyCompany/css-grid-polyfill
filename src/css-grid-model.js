@@ -531,9 +531,9 @@ var cssGrid = (function(window, document) {
 						
 						if(value[I].value == "auto") {
 							return I++, { type: TRACK_BREADTH_AUTO, value:"auto" };
-						} else if(value[I] == "min-content") {
+						} else if(value[I].value == "min-content") {
 							return I++, { type: TRACK_BREADTH_MIN_CONTENT, value:"min-content" };
-						} else if(value[I] == "max-content") {
+						} else if(value[I].value == "max-content") {
 							return I++, { type: TRACK_BREADTH_MAX_CONTENT, value:"max-content" };
 						}
 						
@@ -1053,126 +1053,204 @@ var cssGrid = (function(window, document) {
 		},
 		
 		computeAbsoluteTrackBreadths: function() {
+		
+			///////////////////////////////////////////////////////////
+			// hide child elements, to get free width/height
+			///////////////////////////////////////////////////////////
+			var backup = {
+				border: enforceStyle(this.element, "border", "none"),
+				padding: enforceStyle(this.element, "padding", "0px"),
+				items: this.items.map(function(item) { return enforceStyle(item.element, "display", "none"); })
+			}
 			
-			if(this.growY) {
+			///////////////////////////////////////////////////////////
+			// hide child elements, to get free width/height
+			///////////////////////////////////////////////////////////
+			var LIMIT_IS_INFINITE = 1;		
+			var infinity = 9999999.0;
+			var fullWidth = this.element.offsetWidth;
+			var fullHeight = this.element.offsetHeight;
+			
+			///////////////////////////////////////////////////////////
+			// show child elements again
+			///////////////////////////////////////////////////////////
+			restoreStyle(this.element, backup.border);
+			restoreStyle(this.element, backup.padding); var items = this.items;
+			backup.items.forEach(function(backup, i) { if(backup) restoreStyle(items[i].element, backup); });
+			
+			// 
+			// 10.3  Initialize Track Sizes
+			// 
+			var initializeFromConstraints = function(v) {
 				
-				var infinity = 9999999.0;
-				var fullWidth = this.element.offsetWidth;
-				
-				// 
-				// 10.3  Initialize Track Sizes
-				// 
-				var initializeFromConstraints = function(v) {
+				var base = 0, limit = infinity;
+				switch(v.minType) {
 					
-					var base = 0, limit = infinity;
-					switch(v.minType) {
-						
-						// For fixed track sizes, resolve to an absolute length and use that size. 
-						case TRACK_BREADTH_LENGTH:      base = v.minValue; break;
-						case TRACK_BREADTH_PERCENTAGE:  base = v.minValue*fullWidth/100; break;
-						
-					}
-					
-					switch(v.maxType) {
-						
-						// For fixed track sizes, resolve to an absolute length and use that size. 
-						case TRACK_BREADTH_LENGTH:      limit = v.minValue; break;
-						case TRACK_BREADTH_PERCENTAGE:  limit = v.minValue*fullWidth/100; break;
-						
-						// For flexible track sizes, use the track’s initial base size as its initial growth limit.  
-						case TRACK_BREADTH_FRACTION:    limit = base; break;
-						
-						// For intrinsic track sizes, use an initial growth limit of infinity. 
-						default:                        limit = infinity; break;
-						
-					}
-					
-					return { base:base, limit:limit };
+					// For fixed track sizes, resolve to an absolute length and use that size. 
+					case TRACK_BREADTH_LENGTH:      base = v.minValue; break;
+					case TRACK_BREADTH_PERCENTAGE:  base = v.minValue*fullSize/100; break;
 					
 				}
 				
-				var xSizes = this.xSizes.map(initializeFromConstraints);
+				switch(v.maxType) {
+					
+					// For fixed track sizes, resolve to an absolute length and use that size. 
+					case TRACK_BREADTH_LENGTH:      limit = v.minValue; break;
+					case TRACK_BREADTH_PERCENTAGE:  limit = v.minValue*fullSize/100; break;
+					
+					// For flexible track sizes, use the track’s initial base size as its initial growth limit.  
+					case TRACK_BREADTH_FRACTION:    limit = base; break;
+					
+					// For intrinsic track sizes, use an initial growth limit of infinity. 
+					default:                        limit = infinity; break;
+					
+				}
 				
-				// 
-				// 10.4  Resolve Content-Based Track Sizing Functions
-				// 
+				return { base:base, limit:limit, breadth:0, flags:((limit==infinity)?LIMIT_IS_INFINITE:0)|0 };
+				
+			}
+			
+			//
+			// Equal distribution algorithm
+			//
+			var distributeEquallyAmongTracks = function distributeEquallyAmongTracks(xSizes, kind, tracks, spaceToDistribute, enforceLimit) {
+				// Distribute space to base sizes
+				var trackAmount = tracks.length;
+				var spacePerTrack = spaceToDistribute/trackAmount;
+				if(kind=='base') {
+				
+					// if we enforce the limit, grow up to the most limitating track
+					if(enforceLimit) {
+						for(var t = tracks.length; t--;) { var cx = tracks[t].x;
+							
+							// find the lowest acceptable increase for all tracks
+							var newBase = xSizes[cx].base + spacePerTrack;
+							
+							// if limits are enfo
+							if(enforceLimit && (xSizes[cx].flags & LIMIT_IS_INFINITE == 0) && newBase > xSizes[cx].limit) {
+								spacePerTrack -= newBase - xSizes[cx].limit;
+							}
+						}
+					}
+					
+					for(var t = tracks.length; t--;) { var cx = tracks[t].x;
+						xSizes[cx].base += spacePerTrack;
+					}
+					
+				} else if(kind == 'limit') {
+				
+					// Update the tracks' affected sizes by folding in the calculated increase so that the next round of space distribution will account for the increase.
+					for(var t = tracks.length; t--;) { var cx = tracks[t].x;
+						// If the growth limit is infinite...
+						if(xSizes[cx].flags & LIMIT_IS_INFINITE) {
+							// set it to the track’s base size plus the calculated increase
+							if(xSizes[cx].limit == infinity) {
+								xSizes[cx].limit = xSizes[cx].base + spacePerTrack;
+							} else {
+								xSizes[cx].limit += spacePerTrack; // TODO: THERE IS A BUG HERE ?
+							}
+						} else {
+							// otherwise just increase the limit
+							xSizes[cx].limit += spacePerTrack;
+						}
+					}
+				}
+			}
+
+			
+			// 
+			// 10.4  Resolve Content-Based Track Sizing Functions
+			// 
+			var computeTrackBreadth = function(xSizes, specifiedSizes, getMinWidthOf, getMaxWidthOf, getXStartOf, getXEndOf) {
 				
 				// For each track
 				var items_done = 0; // items already consumed for this algorithm
-				for(var x = this.xSizes.length; x--;) {
+				for(var x = specifiedSizes.length; x--;) {
+				
+					var dontCountMaxItems = false;
 					
 					// If the track has a ‘min-content’ min track sizing function
-					if(this.xSizes[x].minType == TRACK_BREADTH_MIN_CONTENT) {
+					if(specifiedSizes[x].minType == TRACK_BREADTH_MIN_CONTENT || specifiedSizes[x].minType == TRACK_BREADTH_AUTO) {
 						
 						// Consider the items in it with a span of 1: 
-						for(var i = this.items.length; i--;) { var item = this.items[i];
-							if(item.xStart>x || item.xEnd<=x || item.xEnd-item.xStart != 1) continue;
+						for(var i = this.items.length; i--;) { var item = this.items[i]; var item_xStart = getXStartOf(item); var item_xEnd = getXEndOf(item);
+							if(item_xStart>x || item_xEnd<=x || item_xEnd-item_xStart != 1) continue;
 							
 							// Set its base size to the maximum of the items’ min-content contributions. 
-							xSizes[x].base = Math.max(xSizes[x].base, item.minWidth); items_done++;
+							xSizes[x].base = Math.max(xSizes[x].base, getMinWidthOf(item)); items_done++; dontCountMaxItems=true;
 							
 						}
 						
-						
-					} 
+					}
 					
 					// If the track has a ‘max-content’ min track sizing function
-					else if(if(this.xSizes[x].minType == TRACK_BREADTH_MAX_CONTENT) {
+					else if(specifiedSizes[x].minType == TRACK_BREADTH_MAX_CONTENT) {
 						
 						// Consider the items in it with a span of 1: 
-						for(var i = this.items.length; i--;) { var item = this.items[i];
-							if(item.xStart>x || item.xEnd<=x || item.xEnd-item.xStart != 1) continue;
+						for(var i = this.items.length; i--;) { var item = this.items[i]; var item_xStart = getXStartOf(item); var item_xEnd = getXEndOf(item);
+							if(item_xStart>x || item_xEnd<=x || item_xEnd-item_xStart != 1) continue;
 							
 							// Set its base size to the maximum of the items’ max-content contributions. 
-							xSizes[x].base = Math.max(xSizes[x].base, item.maxWidth); items_done++;
+							xSizes[x].base = Math.max(xSizes[x].base, getMaxWidthOf(item)); items_done++; dontCountMaxItems=true;
 							
 						}
 						
 					}
 					
 					// If the track has a ‘min-content’ max track sizing function
-					if(this.xSizes[x].maxType == TRACK_BREADTH_MIN_CONTENT) {
+					if(specifiedSizes[x].maxType == TRACK_BREADTH_MIN_CONTENT) {
 						
 						// Consider the items in it with a span of 1: 
-						for(var i = this.items.length; i--;) { var item = this.items[i];
-							if(item.xStart>x || item.xEnd<=x || item.xEnd-item.xStart != 1) continue;
+						for(var i = this.items.length; i--;) { var item = this.items[i]; var item_xStart = getXStartOf(item); var item_xEnd = getXEndOf(item);
+							if(item_xStart>x || item_xEnd<=x || item_xEnd-item_xStart != 1) continue;
 							
 							// Set its growth limit to the maximum of the items’ min-content contributions. 
-							xSizes[x].limit = Math.max(xSizes[x].limit, item.minWidth); items_done++;
+							if(xSizes[x].limit == infinity) { xSizes[x].limit = getMinWidthOf(item); }
+							else { xSizes[x].limit = Math.max(xSizes[x].limit, getMinWidthOf(item)); }
+							
+							if(!dontCountMaxItems) { items_done++; }
 							
 						}
 						
 					} 
 					
 					// If the track has a ‘max-content’ max track sizing function
-					else if(if(this.xSizes[x].maxType == TRACK_BREADTH_MAX_CONTENT) {
+					else if(specifiedSizes[x].maxType == TRACK_BREADTH_MAX_CONTENT || specifiedSizes[x].minType == TRACK_BREADTH_AUTO) {
 						
 						// Consider the items in it with a span of 1: 
-						for(var i = this.items.length; i--;) { var item = this.items[i];
-							if(item.xStart>x || item.xEnd<=x || item.xEnd-item.xStart != 1) continue;
+						for(var i = this.items.length; i--;) { var item = this.items[i]; var item_xStart = getXStartOf(item); var item_xEnd = getXEndOf(item);
+							if(item_xStart>x || item_xEnd<=x || item_xEnd-item_xStart != 1) continue;
 							
 							// Set its growth limit to the maximum of the items’ max-content contributions. 
-							xSizes[x].limit = Math.max(xSizes[x].limit, item.maxWidth); items_done++;
+							if(xSizes[x].limit == infinity) { xSizes[x].limit = getMaxWidthOf(item); }
+							else { xSizes[x].limit = Math.max(xSizes[x].limit, getMaxWidthOf(item)); }
+							
+							if(!dontCountMaxItems) { items_done++; }
 							
 						}
 						
+					}
+					
+					// update infinity flag
+					if(xSizes[x].limit != infinity) {
+						xSizes[x].flags = xSizes[x].flags & ~LIMIT_IS_INFINITE;
 					}
 					
 				}
 				
 				// Next, consider the items with a span of 2 that do not span a track with a flexible sizing function: 
 				// Repeat incrementally for items with greater spans until all items have been considered.
-				for(var span = 2; items_done == this.items.length && span <= this.xSizes.length; span++) {
-					ItemLoop: for(var i = this.items.length; i--;) { var item = this.items[i];
-						if(item.xStart>x || item.xEnd<=x || item.xEnd-item.xStart != span) continue ItemLoop;
+				for(var span = 2; items_done == this.items.length && span <= specifiedSizes.length; span++) {
+					ItemLoop: for(var i = this.items.length; i--;) { var item = this.items[i]; var item_xStart = getXStartOf(item); var item_xEnd = getXEndOf(item);
+						if(item_xEnd-item_xStart != span) continue ItemLoop;
 						
 						// gather some pieces of data about the tracks
 						var full_base = 0; var full_limit = 0;
-						for(var cx = item.xStart; cx<item.xEnd; cx++) { 
+						for(var cx = item_xStart; cx<item_xEnd; cx++) { 
 							
 							// 1. we want to make sure none is flexible
-							if(this.xSizes[cx].minType == TRACK_BREADTH_FRACTION) continue ItemLoop;
-							if(this.xSizes[cx].maxType == TRACK_BREADTH_FRACTION) continue ItemLoop;
+							if(specifiedSizes[cx].minType == TRACK_BREADTH_FRACTION) continue ItemLoop;
+							if(specifiedSizes[cx].maxType == TRACK_BREADTH_FRACTION) continue ItemLoop;
 							
 							// 2. compute aggregated sizes
 							full_base += xSizes[cx].base;
@@ -1182,123 +1260,357 @@ var cssGrid = (function(window, document) {
 						if(full_limit > infinity) full_limit=infinity;
 						
 						var distributeFreeSpace = function(requiredSpace, kind /*'base'|'limit'*/, target /*'min-content'|'max-content'*/) {
+													
+							while (true) {
+							
+								// compute the required extra space
+								var spaceToDistribute = requiredSpace;
+								for(var cx = item_xStart; cx<item_xEnd; cx++) {
+									spaceToDistribute -= xSizes[cx][kind];
+								}
+								
+								// if no space to distribute, just lock auto columns:
+								if(spaceToDistribute<=0) {
+									for(var cx = item_xStart; cx<item_xEnd; cx++) {
+										if(xSizes[cx].limit == infinity) {
+											xSizes[cx].limit = xSizes[cx].base;
+										}
+									}
+									return;
+								}
+
+								// sort rows by growth limit
+								var rows_and_limits = [];
+								for(var cx = item_xStart; cx<item_xEnd; cx++) {
+									rows_and_limits.push({ 
+										x:cx, 
+										base:xSizes[cx].base,
+										limit:xSizes[cx].limit,
+										minIsMinContent: specifiedSizes[cx].minType == TRACK_BREADTH_MIN_CONTENT || specifiedSizes[cx].minType == TRACK_BREADTH_AUTO,
+										minIsMaxContent: specifiedSizes[cx].minType == TRACK_BREADTH_MAX_CONTENT,
+										maxIsMinContent: specifiedSizes[cx].maxType == TRACK_BREADTH_MIN_CONTENT,
+										maxIsMaxContent: specifiedSizes[cx].maxType == TRACK_BREADTH_MAX_CONTENT || specifiedSizes[cx].maxType == TRACK_BREADTH_AUTO
+									});
+								}
+								rows_and_limits.sort(function(a,b) { return a.limit-b.limit; });
+								
+								// apply the algorithm
+								if(kind=='base') {
+									
+									// Distribute space up to growth limits
+									var tracks = rows_and_limits.filter(function(b) { return ((b.minIsMinContent||b.minIsMaxContent) && b.base<b.limit); }, 0);
+									var trackAmount = tracks.length;
+									if(trackAmount > 0) {
+										
+										distributeEquallyAmongTracks(xSizes, kind, tracks, spaceToDistribute, /*enforceLimit:*/true);
+											
+									} else {
+										
+										// Distribute space beyond growth limits
+										// If space remains after all tracks are frozen, unfreeze and continue to distribute space to… 
+										
+										// - when handling ‘min-content’ base sizes: 
+										if(target=='min-content') {
+											
+											// any affected track that happens to also have an intrinsic max track sizing function; 
+											var tracks = rows_and_limits.filter(function(b) { return ((b.minIsMinContent||b.minIsMaxContent) && (b.maxIsMinContent||b.maxIsMaxContent)); }, 0);
+											var trackAmount = tracks.length;
+											if(trackAmount>=1) {
+												
+												// (such tracks exist:)
+												distributeEquallyAmongTracks(xSizes, kind, tracks, spaceToDistribute, /*enforceLimit:*/false);
+												
+											} else {
+												
+												// if there are no such tracks, then all affected tracks. 
+												distributeEquallyAmongTracks(xSizes, kind, rows_and_limits, spaceToDistribute, /*enforceLimit:*/false);
+											}
+											
+										}
+										
+										// - when handling ‘max-content’ base sizes: 
+										if(target=='max-content') {
+											
+											// any affected track that happens to also have a ‘max-content’ max track sizing function;
+											var tracks = rows_and_limits.filter(function(b) { return ((b.minIsMaxContent) && (b.maxIsMaxContent)); }, 0);
+											var trackAmount = tracks.length;
+											if(trackAmount>=1) {
+												
+												// (such tracks exist:)
+												distributeEquallyAmongTracks(xSizes, kind, tracks, spaceToDistribute, /*enforceLimit:*/false);
+												
+											} else {
+												
+												// if there are no such tracks, then all affected tracks. 
+												distributeEquallyAmongTracks(xSizes, kind, rows_and_limits, spaceToDistribute, /*enforceLimit:*/false);
+											}
+											
+										}
+									}
+									
+								}
+								
+								else if (kind == 'limit') {
+									
+									// distribute among all tracks
+									distributeEquallyAmongTracks(xSizes, kind, rows_and_limits, spaceToDistribute);
+									
+								}
+							}
+						};
 						
-							// internal function for simple distribution
-							function distributeEquallyAmongTracks(tracks, spaceToDistribute, enforceLimit) {
-								// Distribute space to base sizes up to growth limits
-								var trackAmount = tracks.length;
-								var spacePerTrack = spaceToDistribute/trackAmount;
-								for(var t = tracks.length; t--;) { var cx = tracks[t].x;
-									xSizes[cx].base += spacePerTrack;
-									if(enforceLimit && xSizes[cx].base > xSizes[cx].limit) {
-										xSizes[cx].base = xSizes[cx].limit;
-									}
+						var updateInfiniteLimitFlag = function() {
+							for(var x = xSizes.length; x--;) {
+								if(xSizes[x].limit != infinity) {
+									xSizes[x].flags = xSizes[x].flags & ~LIMIT_IS_INFINITE;
 								}
-							}
-							
-							// compute the required extra space
-							var spaceToDistribute = requiredSpace;
-							for(var cx = item.xStart; cx<item.xEnd; cx++) {
-								spaceToDistribute -= xSizes[cx][kind];
-							}
-							if(spaceToDistribute<=0) return;
-
-							// sort rows by growth limit
-							var rows_and_limits = [];
-							for(var cx = item.xStart; cx<item.xEnd; cx++) {
-								rows_and_limits.push({ 
-									x:cx, 
-									base:xSizes[cx].base,
-									limit:xSizes[cx].limit,
-									minIsMinContent: this.xSizes[cx].minType == TRACK_BREADTH_MIN_CONTENT,
-									minIsMaxContent: this.xSizes[cx].minType == TRACK_BREADTH_MAX_CONTENT,
-									maxIsMinContent: this.xSizes[cx].maxType == TRACK_BREADTH_MIN_CONTENT,
-									maxIsMaxContent: this.xSizes[cx].maxType == TRACK_BREADTH_MAX_CONTENT
-								});
-							}
-							rows_and_limits.sort(function(a,b) { return a.limit-b.limit; });
-							
-							// apply the algorithm
-							if(kind=='base') {
-								
-								var tracks = rows_and_limits.filter(function(b) { return ((b.minIsMinContent||b.minIsMaxContent) && b.base<b.limit); }, 0);
-								var trackAmount = tracks.length;
-								if(trackAmount > 0) {
-									
-									distributeEquallyAmongTracks(tracks, spaceToDistribute, /*enforceLimit:*/true);
-										
-								} else {
-									
-									// Distribute space beyond growth limits
-									// If space remains after all tracks are frozen, unfreeze and continue to distribute space to… 
-									
-									// - when handling ‘min-content’ base sizes: 
-									if(target=='min-content') {
-										
-										// any affected track that happens to also have an intrinsic max track sizing function; 
-										var tracks = rows_and_limits.filter(function(b) { return ((b.minIsMinContent||b.minIsMaxContent) && (b.maxIsMinContent||b.maxIsMaxContent)); }, 0);
-										var trackAmount = tracks.length;
-										if(trackAmount>=1) {
-											
-											// (such tracks exist:)
-											distributeEquallyAmongTracks(tracks, spaceToDistribute, /*enforceLimit:*/false);
-											
-										} else {
-											
-											// if there are no such tracks, then all affected tracks. 
-											distributeEquallyAmongTracks(rows_and_limits, spaceToDistribute, /*enforceLimit:*/false);
-										}
-										
-									}
-									
-									// - when handling ‘max-content’ base sizes: 
-									if(target=='max-content') {
-										
-										// any affected track that happens to also have a ‘max-content’ max track sizing function;
-										var tracks = rows_and_limits.filter(function(b) { return ((b.minIsMinContent||b.minIsMaxContent) && (b.maxIsMaxContent)); }, 0);
-										var trackAmount = tracks.length;
-										if(trackAmount>=1) {
-											
-											// (such tracks exist:)
-											distributeEquallyAmongTracks(tracks, spaceToDistribute, /*enforceLimit:*/false);
-											
-										} else {
-											
-											// if there are no such tracks, then all affected tracks. 
-											distributeEquallyAmongTracks(rows_and_limits, spaceToDistribute, /*enforceLimit:*/false);
-										}
-										
-									}
-
-									var trackAmount = rows_and_limits.length;
-									var spacePerTrack = spaceToDistribute/trackAmount;
-									for(var cx = item.xStart; cx<item.xEnd; cx++) {
-										xSizes[cx].base += spacePerTrack;
-									}
-									
-								}
-								
 							}
 						}
 						
+						//
 						// 1. For intrinsic minimums: First increase the base size of tracks with a min track sizing function of ‘min-content’ or ‘max-content’ by distributing extra space as needed to account for these items' min-content contributions. 
-						// 2. For max-content minimums: Next continue to increase the base size of tracks with a min track sizing function of ‘max-content’ by distributing extra space as needed to account for these items' max-content contributions. 
-						// 3. For intrinsic maximums: Third increase the growth limit of tracks with a max track sizing function of ‘min-content’ or ‘max-content’ by distributing extra space as needed to account for these items' min-content contributions. Mark any tracks whose growth limit changed from infinite to finite in this step as infinitely growable# for the next step. 
-						// 4. For max-content maximums: Lastly continue to increase the growth limit of tracks with a max track sizing function of ‘max-content’ by distributing extra space as needed to account for these items' max-content contributions. 
-
+						//
+						distributeFreeSpace(item.minWidth, 'base', 'min-content');
+						updateInfiniteLimitFlag();
 						
-						xSizes[x].base = Math.max(xSizes[x].base, item.minWidth); items_done++;
+						
+						//
+						// 2. For max-content minimums: Next continue to increase the base size of tracks with a min track sizing function of ‘max-content’ by distributing extra space as needed to account for these items' max-content contributions. 
+						//
+						distributeFreeSpace(item.maxWidth, 'base', 'max-content');
+						updateInfiniteLimitFlag();
+						
+						//
+						// 3. For intrinsic maximums: Third increase the growth limit of tracks with a max track sizing function of ‘min-content’ or ‘max-content’ by distributing extra space as needed to account for these items' min-content contributions. 
+						// Mark any tracks whose growth limit changed from infinite to finite in this step as infinitely growable for the next step. 
+						// (aka do not update infinity flag)
+						//
+						distributeFreeSpace(item.minWidth, 'limit', 'min-content');
+						
+						//
+						// 4. For max-content maximums: Lastly continue to increase the growth limit of tracks with a max track sizing function of ‘max-content’ by distributing extra space as needed to account for these items' max-content contributions. 
+						//
+						distributeFreeSpace(item.maxWidth, 'limit', 'max-content');
+						updateInfiniteLimitFlag();
+						
+						items_done++;
 						
 					}
 				}
-				
-				var ySizes = this.xSizes.map(function(v) { return {base:0.0, limit:infinity} });
-				
-			} else {
-				throw new Error("Not implemented");
+
 			}
+			
+			var computeTrackBreadthIncrease = function(xSizes, specifiedSizes, fullSize) {
+				
+				// sort rows by growth limit
+				var rows_and_limits = xSizes.map(function(item, cx) { 
+					return { 
+						x:cx, 
+						base:xSizes[cx].base,
+						limit:xSizes[cx].limit,
+						minIsMinContent: specifiedSizes[cx].minType == TRACK_BREADTH_MIN_CONTENT || specifiedSizes[cx].minType == TRACK_BREADTH_AUTO,
+						minIsMaxContent: specifiedSizes[cx].minType == TRACK_BREADTH_MAX_CONTENT,
+						maxIsMinContent: specifiedSizes[cx].maxType == TRACK_BREADTH_MIN_CONTENT,
+						maxIsMaxContent: specifiedSizes[cx].maxType == TRACK_BREADTH_MAX_CONTENT || specifiedSizes[cx].maxType == TRACK_BREADTH_AUTO
+					};
+				});
+				rows_and_limits.sort(function(a,b) { return a.limit-b.limit; });
+				
+				while(true) {
+					
+					// compute size to distribute
+					var spaceToDistribute = fullSize;
+					for(var cx = xSizes.length; cx--;) {
+						spaceToDistribute -= xSizes[cx].base;
+					}
+					
+					// check that there is some space to distribute
+					if(spaceToDistribute <= 0) { return; }
+					
+					// Distribute space up to growth limits
+					var tracks = rows_and_limits = rows_and_limits.filter(function(b) { return ((b.minIsMinContent||b.minIsMaxContent) && b.base<b.limit); }, 0);
+					var trackAmount = tracks.length; if(trackAmount <= 0) { return; }
+					distributeEquallyAmongTracks(xSizes, 'base', tracks, spaceToDistribute, /*enforceLimit:*/true);
+					
+				}
+			}
+			
+			var computeFlexibleTrackBreadth = function(xSizes, specifiedSizes, fullSize) {
+				
+				// TODO:
+				// If the free space is an indefinite length: The used flex fraction is the maximum of: • Each flexible track’s base size divided by its flex factor. 
+				// •The result of finding the size of an fr for each grid item that crosses a flexible track, using all the grid tracks that the item crosses and a space to fill of the item’s max-content contribution. 
+				
+				var spaceToDistribute = fullSize;
+				var tracks = []; var fractionSum = 0;
+				for(var x = xSizes.length; x--;) {
+					if(specifiedSizes[x].maxType == TRACK_BREADTH_FRACTION) {
+						tracks.push(x); fractionSum += specifiedSizes[x].maxValue;
+					} else {
+						spaceToDistribute -= (xSizes[x].breadth = xSizes[x].base);
+					}
+				}
+
+				
+				while(tracks.length>0) {
+					// Let the hypothetical flex fraction be the leftover space divided by the sum of the flex factors of the flexible tracks.
+					var currentFraction = spaceToDistribute / fractionSum; var restart = false;
+					for(var i = tracks.length; i--;) { var x = tracks[i];
+						
+						var trackSize = currentFraction * specifiedSizes[x].maxValue;
+						
+						// If the product of the hypothetical flex fraction and a flexible track’s flex factor is less than the track’s base size:
+						if(xSizes[x].base > trackSize) {
+							
+							// mark as non-flexible
+							xSizes[x].breadth = xSizes[x].base;
+							
+							// remove from computation
+							fractionSum -= specifiedSizes[x].maxValue;
+							tracks.splice(i,1);
+							
+							// restart
+							restart=true;
+							
+						} else { 
+						
+							// set its base size to that product.
+							xSizes[x].breadth = trackSize;
+							
+						}
+						
+					}
+					
+					if(!restart) { tracks.length = 0; }
+					
+				}
+				
+			}
+			
+			///////////////////////////////////////////////////////////
+			// compute breadth of columns
+			///////////////////////////////////////////////////////////
+			var mode = 'x';
+			var fullSize = fullWidth;
+			var xSizes = this.xSizes.map(initializeFromConstraints);
+			
+			// compute base and limit
+			computeTrackBreadth.call(
+				this,
+				xSizes,
+				this.xSizes,
+				function(item) { return item.minWidth; },
+				function(item) { return item.maxWidth; },
+				function(item) { return item.xStart; },
+				function(item) { return item.xEnd; }
+			);
+			
+			// ResolveContentBasedTrackSizingFunctions (step 4)
+			for(var x = this.xSizes.length; x--;) {
+				if(xSizes[x].limit == infinity) { xSizes[x].limit = xSizes[x].base; }
+			}
+			
+			// grow tracks up to their max
+			computeTrackBreadthIncrease.call(
+				this,
+				xSizes,
+				this.xSizes,
+				fullWidth
+			);
+			
+			// handle flexible things
+			computeFlexibleTrackBreadth.call(
+				this,
+				xSizes,
+				this.xSizes,
+				fullWidth
+			);
+			
+			///////////////////////////////////////////////////////////
+			// position each element absolutely, and set width to compute height
+			///////////////////////////////////////////////////////////
+			var backup = {
+				position: enforceStyle(this.element, "position", ["relative","absolute","fixed"]),
+				items: this.items.map(function(item) {
+					
+					// firstly, compute the breadth of all tracks
+					var totalBreadth = 0;
+					for(var cx = item.xStart; cx<item.xEnd; cx++) {
+						totalBreadth += xSizes[cx].base;
+					}
+					
+					// secondly, adapt to the alignment properties
+					//TODO: alignment
+					
+					// finally, set the style
+					return {
+						position: enforceStyle(item.element, "position", "absolute"),
+						width: enforceStyle(item.element, "width", totalBreadth+'px')
+					};
+						
+				})
+			}
+			
+			///////////////////////////////////////////////////////////
+			// compute breadth of columns
+			///////////////////////////////////////////////////////////
+			var mode = 'y';
+			var fullSize = fullHeight;
+			var ySizes = this.ySizes.map(initializeFromConstraints);
+			
+			computeTrackBreadth.call(
+				this,
+				ySizes,
+				this.ySizes,
+				function(item) { return item.element.offsetHeight; },
+				function(item) { return item.element.offsetHeight; },
+				function(item) { return item.yStart; },
+				function(item) { return item.yEnd; }
+			);
+			
+			// ResolveContentBasedTrackSizingFunctions (step 4)
+			for(var y = this.ySizes.length; y--;) {
+				if(ySizes[y].limit == infinity) { ySizes[y].limit = ySizes[y].base; }
+			}
+			
+			// grow tracks up to their max
+			computeTrackBreadthIncrease.call(
+				this,
+				ySizes,
+				this.ySizes,
+				0 // TODO: ...
+			);
+			
+			// handle flexible things
+			computeFlexibleTrackBreadth.call(
+				this,
+				ySizes,
+				this.ySizes,
+				0 // TODO: ...
+			);
+						
+			///////////////////////////////////////////////////////////
+			// release the override style of elements
+			///////////////////////////////////////////////////////////
+			restoreStyle(this.element, backup.position); var items = this.items;
+			backup.items.forEach(function(backup, i) { if(backup) restoreStyle(items[i].element, backup.position); });
+			backup.items.forEach(function(backup, i) { if(backup) restoreStyle(items[i].element, backup.width); });
+			
+			///////////////////////////////////////////////////////////
+			// save the results
+			////
+			this.finalXSizes = xSizes;
+			this.finalYSizes = ySizes;
+			
+			///////////////////////////////////////////////////////////
+			// log the results
+			///////////////////////////////////////////////////////////
+			console.log({
+				x: xSizes,
+				y: ySizes,
+			});
 		
-		}
+		},
 		
 		generateMSGridStyle: function() {
 			
@@ -1312,6 +1624,63 @@ var cssGrid = (function(window, document) {
 				item.element.style.setProperty("-ms-grid-column", item.xStart+1);
 				item.element.style.setProperty("-ms-grid-row-span", item.yEnd-item.yStart);
 				item.element.style.setProperty("-ms-grid-column-span", item.xEnd-item.xStart);
+				
+			}
+			
+		},
+		
+		generatePolyfilledStyle: function() {
+		
+			var xSizes = this.finalXSizes;
+			var ySizes = this.finalYSizes;
+			
+			var width = 0;
+			for(var x = 0; x<xSizes.length; x++) {
+				width += xSizes[x].breadth;
+			}
+			
+			var height = 0;
+			for(var y = 0; y<ySizes.length; y++) {
+				height += ySizes[y].breadth;
+			}
+			
+			enforceStyle(this.element, "display", "block");
+			enforceStyle(this.element, "position", ["relative","absolute","fixed"]);
+			
+			enforceStyle(this.element, "width", width+'px');
+			enforceStyle(this.element, "height", height+'px');
+
+			
+			for(var i=this.items.length; i--;) { var item = this.items[i]; 
+				
+				item.element.style.setProperty("position", "absolute");
+				
+				var left = 0;
+				for(var x = 0; x<item.xStart; x++) {
+					left += xSizes[x].breadth;
+				}
+				
+				var width = 0;
+				for(var x = item.xStart; x<item.xEnd; x++) {
+					width += xSizes[x].breadth;
+				}
+				
+				var top = 0;
+				for(var y = 0; y<item.yStart; y++) {
+					top += ySizes[y].breadth;
+				}
+				
+				var height = 0;
+				for(var y = item.yStart; y<item.yEnd; y++) {
+					height += ySizes[y].breadth;
+				}
+					
+				item.element.style.setProperty("top" , top +'px');
+				item.element.style.setProperty("left", left+'px');
+				// TODO: if(width >= item.minWidth || usedStyleOf(item.element)) 
+				// TODO: same for height
+				item.element.style.setProperty("width" , width +'px');
+				item.element.style.setProperty("height", height+'px');
 				
 			}
 			

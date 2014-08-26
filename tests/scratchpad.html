@@ -6,6 +6,9 @@
 		<script src="../src/css-sizing.js"></script>
 		<script src="../src/css-syntax.js"></script>
 		<script src="../src/css-grid-model.js"></script>
+		<style>
+			* { box-sizing: border-box; }
+		</style>
 	</head>
 	<body>
 
@@ -133,8 +136,6 @@
 			
 			function test_grid_placement() {
 				
-				//throw "start debug here";
-				
 				var gle = document.createElement("div");
 				var gl = new cssGrid.GridLayout(gle);
 				
@@ -206,7 +207,7 @@
 						item.updateFromElement();
 					}
 					
-					// perfomr the layout
+					// perfor; the layout
 					gl.performLayout();
 					
 					// display results
@@ -246,10 +247,168 @@
 				window.gl = gl;
 				
 			}
+			
+			function test_track_sizing() {
+				
+				//
+				// generate a random column size
+				//
+				function randomTrackBreadth(axis) {
+					
+					if(axis=='x') {
+					
+						var r = Math.random();
+						if(r<1/3) {
+							return "auto";
+						} else if(r < 2/3) {
+							return (r < 1/2 ? 1 : 2)+'fr';
+						} else {
+							return (r < 3/4 ? 10 : 50)+'px';
+						}
+					
+					} else {
+					
+						// TODO: support fractions for the Y axis
+						var r = Math.random();
+						if(r<1/3) {
+							return "auto";
+						} else if(r < 2/3) {
+							return (r < 1/2 ? 'min-content' : 'max-content');
+						} else {
+							return (r < 3/4 ? 10 : 50)+'px';
+						}
+					
+					}
+						
+					
+				}
+				
+				//
+				// generate a random start track index
+				//
+				function randomStartTrack() {
+					return Math.floor(4*Math.random());
+				}
+				
+				//
+				// generate a random span
+				// 
+				function randomEndTrack(startTrack) {
+					var span = 1+Math.floor(3*Math.random()*Math.random());
+					var endTrack = startTrack + span
+					if(endTrack > 4) { endTrack = 4; }
+					return endTrack;
+				}
+				
+				// 
+				// generate random track position
+				//
+				function randomTrackPosition() {
+					var start = randomStartTrack();
+					var end = randomEndTrack(start);
+					return ''+(start+1)+' / '+(end+1);
+				}
+				
+				//
+				// ...
+				//
+				var gle = document.createElement("div");
+				var gl = new cssGrid.GridLayout(gle);
+				gle.style.position = 'relative';
+				gle.style.background='gray';
+				
+				var explicitGridX = ''+randomTrackBreadth('x')+' '+randomTrackBreadth('x')+' '+randomTrackBreadth('x')+' '+randomTrackBreadth('x'); console.log(explicitGridX);
+				var explicitGridY = ''+randomTrackBreadth('y')+' '+randomTrackBreadth('y')+' '+randomTrackBreadth('y')+' '+randomTrackBreadth('y'); console.log(explicitGridY);
+				gl.parseTrackDefinitions(gl.specifiedXLines, gl.specifiedXSizes, explicitGridX);
+				gl.parseTrackDefinitions(gl.specifiedYLines, gl.specifiedYSizes, explicitGridY);
+				gl.defaultYSize.setValue(TRACK_BREADTH_LENGTH, 50);
+				
+				function createInput(txt, gridArea, gridRow, gridCol) {
+					
+					var el = document.createElement("input");
+					el.type = "button"; el.value = txt;
+					if(gridArea) { el["grid-area"  ] = el.style["grid-area"  ] = gridArea; }
+					if(gridRow)  { el["grid-row"   ] = el.style["grid-row"   ] = gridRow;  }
+					if(gridCol)  { el["grid-column"] = el.style["grid-column"] = gridCol;  }
+					
+					el.style.minWidth = (30+Math.floor(100*Math.random()*Math.random()))+'px';
+					
+					gle.appendChild(el);
+					
+					return el;
+					
+				}
+				
+				var items = [
+					new cssGrid.GridItem(createInput("1","",randomTrackPosition(),randomTrackPosition()), gl),
+					new cssGrid.GridItem(createInput("2","",randomTrackPosition(),randomTrackPosition()), gl),
+					new cssGrid.GridItem(createInput("3","",randomTrackPosition(),randomTrackPosition()), gl),
+					new cssGrid.GridItem(createInput("4","",randomTrackPosition(),randomTrackPosition()), gl),
+					new cssGrid.GridItem(createInput("5","",randomTrackPosition(),randomTrackPosition()), gl),
+					new cssGrid.GridItem(createInput("6","",randomTrackPosition(),randomTrackPosition()), gl),
+					new cssGrid.GridItem(createInput("7","",randomTrackPosition(),randomTrackPosition()), gl),
+				];
+				
+				document.getElementById("main").appendChild(gle);
+				gl.items = items;
+				
+				// update the representation
+				for(var i=items.length; i--;) { var item = items[i];
+					item.updateFromElement();
+				}
+				
+				// perform the layout
+				gl.performLayout();
+				
+				// generate the "ms-grid" style
+				gl.generateMSGridStyle();
+				
+				// collect element sizes and positions
+				var sizes = []; sizes.length = gl.items.length;
+				for(var i = gl.items.length; i--;) {
+					var el = gl.items[i].element;
+					sizes[i] = {
+						offsetWidth: el.offsetWidth,
+						offsetHeight: el.offsetHeight,
+						offsetTop: el.offsetTop,
+						offsetLeft: el.offsetLeft,
+					}
+				}
+				
+				var gle_backup = gle.cloneNode(true);
+				gle_backup.style.background='black';
+				gle.parentElement.appendChild(document.createElement('br'));
+				gle.parentElement.appendChild(gle_backup);
+				
+				// generate the "absolute" style
+				gl.generatePolyfilledStyle();
+				
+				// collect element sizes and positions
+				var final_sizes = []; final_sizes.length = gl.items.length;
+				for(var i = gl.items.length; i--;) {
+					var el = gl.items[i].element;
+					final_sizes[i] = {
+						offsetWidth: el.offsetWidth,
+						offsetHeight: el.offsetHeight,
+						offsetTop: el.offsetTop,
+						offsetLeft: el.offsetLeft,
+					}
+				}
+				
+				// log the two
+				console.log(JSON.stringify(sizes));
+				console.log(JSON.stringify(final_sizes));
+				
+				// to debug more easily:
+				window.gl = gl;
 
+				
+			}
+			
 			//test_grid_row_parser();
 			//test_grid_template_rows_parser();
-			test_grid_placement();
+			//test_grid_placement();
+			test_track_sizing();
 		
 		</script></pre>
 	</body>

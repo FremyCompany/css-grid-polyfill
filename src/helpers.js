@@ -5,8 +5,15 @@ function usedStyleOf(element) {
 function enforceStyle(element, property, value) {
 	
 	var propertyBackup = null;
+	var usedValue = usedStyleOf(element).getPropertyValue(property);
+	if(value instanceof Array) {
+		if(value.indexOf(usedValue) >= 0) return null;
+		value = ''+value[0];
+	} else {
+		value = ''+value;
+	}
 	
-	if(usedStyleOf(element).getPropertyValue(property) != value) {
+	if(usedValue != value) {
 		propertyBackup = { 
 			value:     element.style.getPropertyValue(property),
 			priority:  element.style.getPropertyPriority(property),
