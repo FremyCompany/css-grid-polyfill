@@ -1647,8 +1647,9 @@ var cssGrid = (function(window, document) {
 			enforceStyle(this.element, "display", "block");
 			enforceStyle(this.element, "position", ["relative","absolute","fixed"]);
 			
-			enforceStyle(this.element, "width", width+'px');
-			enforceStyle(this.element, "height", height+'px');
+			var s = usedStyleOf(this.element);
+			if(["absolute","fixed"].indexOf(s.getPropertyValue("position")) >= 0) { enforceStyle(this.element, "width", width+'px'); }
+			if(["auto","0px"].indexOf(s.getPropertyValue("height")) >= 0) { enforceStyle(this.element, "height", height+'px'); }
 
 			
 			for(var i=this.items.length; i--;) { var item = this.items[i]; 
