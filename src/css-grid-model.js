@@ -499,18 +499,28 @@ var cssGrid = (function(window, document) {
 				return buggy=true;
 			}
 			
-			// extract strings from the value
-			var strings = [];
-			cssText = cssText.replace(/\s*("(?:.*?)"|'(?:.*?)')\s*([-_a-zA-Z0-9]*)\s*/g,function(data,str,size) { strings.push(str); return ' '+(size||"auto")+' '; });
+			// check if we can find any string
+			if(/"|'/.test(cssText)) {
 			
-			// remove duplicate line name blocks
-			cssText = cssText.replace(/\)\s*\(/g," ");
+				// extract strings from the value
+				var strings = [];
+				cssText = cssText.replace(/\s*("(?:.*?)"|'(?:.*?)')\s*([-_a-zA-Z0-9]*)\s*/g,function(data,str,size) { strings.push(str); return ' '+(size||"auto")+' '; });
+				
+				// remove duplicate line name blocks
+				cssText = cssText.replace(/\)\s*\(/g," ");
+				
+				// parse rows now
+				if(this.parseRowsTemplate(cssText)) { return buggy=true; }
+				
+				// parse areas now
+				if(this.parseAreasTemplate(strings.join(' '))) { return buggy=true; }
 			
-			// parse rows now
-			if(this.parseRowsTemplate(cssText)) { return buggy=true; }
-			
-			// parse areas now
-			if(this.parseAreasTemplate(strings.join(' '))) { return buggy=true; }
+			} else {
+				
+				// parse rows now
+				if(this.parseRowsTemplate(cssText)) { return buggy=true; }
+				
+			}
 			
 			return buggy;
 			
