@@ -1416,7 +1416,7 @@ var cssGrid = (function(window, document) {
 										}
 									}
 									return false;
-								}
+								});
 								
 								// check that there is at least one affected track
 								if(rows_and_limits.length == 0) { return; }
