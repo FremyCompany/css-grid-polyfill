@@ -338,8 +338,7 @@
 				
 				var explicitGridX = randomTrackBreadths('x'); console.log(explicitGridX);
 				var explicitGridY = randomTrackBreadths('y'); console.log(explicitGridY);
-				gl.parseTrackDefinitions(gl.specifiedXLines, gl.specifiedXSizes, explicitGridX);
-				gl.parseTrackDefinitions(gl.specifiedYLines, gl.specifiedYSizes, explicitGridY);
+				gl.parseTracksTemplate(explicitGridX, explicitGridY, '"a a . ." "a a . ." "b b b b" ". . . c"');
 				gl.defaultYSize.setValue(TRACK_BREADTH_LENGTH, 50);
 				
 				function createInput(txt, gridArea, gridRow, gridCol) {
