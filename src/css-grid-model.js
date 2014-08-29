@@ -483,14 +483,36 @@ var cssGrid = (function(window, document) {
 			this.ySizes = this.specifiedYSizes.slice(0);
 		},
 		
-		parseGridTemplate: function(cssText) {
+		parseGridTemplate: function(cssText) { // TODO: I used some lazy heuristics here
+			var buggy = false; 
+		
+			// step 1: columns are defined before the slash, if any
+			var cssText = cssText.replace(/\/\*(.*?)\*\//g,"");
+			var cssTextSections = cssText.split("/");
+			if(cssTextSections.length == 2) {
+				if(this.parseColumnsTemplate(cssTextSections[0])) { return buggy=true; }
+				cssText = cssTextSections[1];
+			}
 			
-			// parse value into tokens:
-			var unfiltred_value = cssSyntax.parseCSSValue(cssText);
-			var value = unfiltred_value.filter(function(o) { return !(o instanceof cssSyntax.WhitespaceToken); });
-			value.toCSSString = function() { return unfiltred_value.toCSSString(); }
+			// check that the syntax makes sense
+			else if(cssTextSections.length >= 3) { 
+				return buggy=true;
+			}
 			
-			// parse tokens into data:
+			// extract strings from the value
+			var strings = [];
+			cssText = cssText.replace(/\s*("(?:.*?)"|'(?:.*?)')\s*([-_a-zA-Z0-9]*)\s*/g,function(data,str,size) { strings.push(str); return ' '+(size||"auto")+' '; });
+			
+			// remove duplicate line name blocks
+			cssText = cssText.replace(/\)\s*\(/g," ");
+			
+			// parse rows now
+			if(this.parseRowsTemplate(cssText)) { return buggy=true; }
+			
+			// parse areas now
+			if(this.parseAreasTemplate(strings.join(' '))) { return buggy=true; }
+			
+			return buggy;
 			
 		},
 		

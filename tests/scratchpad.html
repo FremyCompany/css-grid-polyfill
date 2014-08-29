@@ -134,6 +134,16 @@
 				
 			}
 			
+			function test_template_parser() {
+				var test_case = 'auto 1fr auto /  (header-top) "a   a   a"     (header-bottom)  (main-top) "b   b   b" 1fr (main-bottom)';
+				
+				var gl = new cssGrid.GridLayout();
+				gl.parseGridTemplate(test_case);
+				
+				console.log(gl);
+
+			}
+			
 			function test_grid_placement() {
 				
 				var gle = document.createElement("div");
@@ -425,6 +435,7 @@
 			
 			//test_grid_row_parser();
 			//test_grid_template_rows_parser();
+			//test_template_parser();
 			//test_grid_placement();
 			test_track_sizing();
 		
