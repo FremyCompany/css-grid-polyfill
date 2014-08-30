@@ -1199,6 +1199,7 @@ var cssGrid = (function(window, document) {
 			var backup = {
 				border: enforceStyle(this.element, "border", "none"),
 				padding: enforceStyle(this.element, "padding", "0px"),
+				minHeight: enforceStyle(this.element, "min-height", "0px"),
 				items: this.items.map(function(item) { return enforceStyle(item.element, "display", "none"); })
 			}
 			
@@ -1214,7 +1215,8 @@ var cssGrid = (function(window, document) {
 			// show child elements again
 			///////////////////////////////////////////////////////////
 			restoreStyle(this.element, backup.border);
-			restoreStyle(this.element, backup.padding); var items = this.items;
+			restoreStyle(this.element, backup.padding);
+			restoreStyle(this.element, backup.minHeight); var items = this.items;
 			backup.items.forEach(function(backup, i) { if(backup) restoreStyle(items[i].element, backup); });
 			
 			// 
@@ -1596,54 +1598,113 @@ var cssGrid = (function(window, document) {
 			
 			var computeFlexibleTrackBreadth = function(xSizes, specifiedSizes, fullSize) {
 				
-				// TODO:
-				// If the free space is an indefinite length: The used flex fraction is the maximum of: • Each flexible track’s base size divided by its flex factor. 
-				// •The result of finding the size of an fr for each grid item that crosses a flexible track, using all the grid tracks that the item crosses and a space to fill of the item’s max-content contribution. 
-				
-				var spaceToDistribute = fullSize;
-				var tracks = []; var fractionSum = 0;
-				for(var x = xSizes.length; x--;) {
-					if(specifiedSizes[x].maxType == TRACK_BREADTH_FRACTION) {
-						tracks.push(x); fractionSum += specifiedSizes[x].maxValue;
-					} else {
-						spaceToDistribute -= (xSizes[x].breadth = xSizes[x].base);
-					}
-				}
-
-				
-				while(tracks.length>0) {
-					// Let the hypothetical flex fraction be the leftover space divided by the sum of the flex factors of the flexible tracks.
-					var currentFraction = spaceToDistribute / fractionSum; var restart = false;
-					for(var i = tracks.length; i--;) { var x = tracks[i];
+				// If the free space is an indefinite length: 
+				if(fullSize==0) {
+					
+					//The used flex fraction is the maximum of: 
+					var currentFraction = 0;
+					
+					// • Each flexible track’s base size divided by its flex factor. 
+					//TODO: wtf?
+					
+					// • The result of finding the size of an fr for each grid item that crosses a flexible track, using all the grid tracks that the item crosses and a space to fill of the item’s max-content contribution. 
+					for(var i = this.items.length; i--;) { var item = this.items[i]; var item_xStart = item.xStart; var item_xEnd = item.xEnd;
 						
-						var trackSize = currentFraction * specifiedSizes[x].maxValue;
+						// gather some pieces of data about the tracks
+						var spaceToDistribute = item.maxWidth; var flexFactorSum = 0;
+						for(var cx = item_xStart; cx<item_xEnd; cx++) { 
+							
+							if(specifiedSizes[cx].maxType == TRACK_BREADTH_FRACTION) {
+								// compute how much flexible tracks are required
+								flexFactorSum += specifiedSizes[cx].maxValue;
+							} else {
+								// deduce non-flexible track from the space to distribute
+								spaceToDistribute -= xSizes[cx].base;
+							}
+							
+						}
 						
-						// If the product of the hypothetical flex fraction and a flexible track’s flex factor is less than the track’s base size:
-						if(xSizes[x].base > trackSize) {
-							
-							// mark as non-flexible
-							xSizes[x].breadth = xSizes[x].base;
-							
-							// remove from computation
-							fractionSum -= specifiedSizes[x].maxValue;
-							tracks.splice(i,1);
-							
-							// restart
-							restart=true;
-							
-						} else { 
-						
-							// set its base size to that product.
-							xSizes[x].breadth = trackSize;
-							
+						// compute the minimum flex fraction for this item
+						if(spaceToDistribute > 0 && flexFactorSum > 0) {
+							currentFraction = Math.max(currentFraction, spaceToDistribute / flexFactorSum)
 						}
 						
 					}
 					
-					if(!restart) { tracks.length = 0; }
+					// for each flexible track
+					for(var x = xSizes.length; x--;) {
+						if(specifiedSizes[x].maxType == TRACK_BREADTH_FRACTION) {
+							
+							// Compute the product of the hypothetical flex fraction and the track’s flex factor
+							var trackSize = currentFraction * specifiedSizes[x].maxValue;
+							
+							// If that size is less than the track’s base size:
+							if(xSizes[x].base < trackSize) {
+								
+								// set its base size to that product.
+								xSizes[x].breadth = trackSize;
+								
+							}
+							
+						} else {
+							
+							xSizes[x].breadth = xSizes[x].base;
+							
+						}
+					}
+					
+				} else {
+				
+					// compute the leftover space
+					var spaceToDistribute = fullSize;
+					var tracks = []; var fractionSum = 0;
+					for(var x = xSizes.length; x--;) {
+						if(specifiedSizes[x].maxType == TRACK_BREADTH_FRACTION) {
+							tracks.push(x); fractionSum += specifiedSizes[x].maxValue;
+						} else {
+							spaceToDistribute -= (xSizes[x].breadth = xSizes[x].base);
+						}
+					}
+
+					// while there are flexible tracks to size
+					while(tracks.length>0) {
+						
+						// Let the hypothetical flex fraction be the leftover space divided by the sum of the flex factors of the flexible tracks.
+						var currentFraction = spaceToDistribute / fractionSum; var restart = false;
+						
+						// for each flexible track
+						for(var i = tracks.length; i--;) { var x = tracks[i];
+							
+							// Compute the product of the hypothetical flex fraction and the track’s flex factor
+							var trackSize = currentFraction * specifiedSizes[x].maxValue;
+							
+							// If that size is less than the track’s base size:
+							if(xSizes[x].base < trackSize) {
+								
+								// set its base size to that product.
+								xSizes[x].breadth = trackSize;
+
+							} else {
+								
+								// mark as non-flexible
+								xSizes[x].breadth = xSizes[x].base;
+								
+								// remove from computation
+								fractionSum -= specifiedSizes[x].maxValue;
+								tracks.splice(i,1);
+								
+								// restart
+								restart=true;
+								
+							}
+							
+						}
+						
+						if(!restart) { tracks.length = 0; }
+						
+					}
 					
 				}
-				
 			}
 			
 			///////////////////////////////////////////////////////////
