@@ -1561,7 +1561,7 @@ var cssGrid = (function(window, document) {
 
 			}
 			
-			var computeTrackBreadthIncrease = function(xSizes, specifiedSizes, fullSize) {
+			var computeTrackBreadthIncrease = function(xSizes, specifiedSizes, fullSize, getMinWidthOf, getMaxWidthOf, getXStartOf, getXEndOf) {
 				
 				// sort rows by growth limit
 				var rows_and_limits = xSizes.map(function(item, cx) { 
@@ -1596,7 +1596,7 @@ var cssGrid = (function(window, document) {
 				}
 			}
 			
-			var computeFlexibleTrackBreadth = function(xSizes, specifiedSizes, fullSize) {
+			var computeFlexibleTrackBreadth = function(xSizes, specifiedSizes, fullSize, getMinWidthOf, getMaxWidthOf, getXStartOf, getXEndOf) {
 				
 				// If the free space is an indefinite length: 
 				if(fullSize==0) {
@@ -1608,17 +1608,17 @@ var cssGrid = (function(window, document) {
 					//TODO: wtf?
 					
 					// • The result of finding the size of an fr for each grid item that crosses a flexible track, using all the grid tracks that the item crosses and a space to fill of the item’s max-content contribution. 
-					for(var i = this.items.length; i--;) { var item = this.items[i]; var item_xStart = item.xStart; var item_xEnd = item.xEnd;
+					for(var i = this.items.length; i--;) { var item = this.items[i]; var item_xStart = getXStartOf(item); var item_xEnd = getXEndOf(item);
 						
 						// gather some pieces of data about the tracks
-						var spaceToDistribute = item.maxWidth; var flexFactorSum = 0;
+						var spaceToDistribute = getMaxWidthOf(item); var flexFactorSum = 0;
 						for(var cx = item_xStart; cx<item_xEnd; cx++) { 
 							
 							if(specifiedSizes[cx].maxType == TRACK_BREADTH_FRACTION) {
 								// compute how much flexible tracks are required
 								flexFactorSum += specifiedSizes[cx].maxValue;
 							} else {
-								// deduce non-flexible track from the space to distribute
+								// deduce non-flexible tracks from the space to distribute
 								spaceToDistribute -= xSizes[cx].base;
 							}
 							
@@ -1643,6 +1643,10 @@ var cssGrid = (function(window, document) {
 								
 								// set its base size to that product.
 								xSizes[x].breadth = trackSize;
+								
+							} else {
+								
+								xSizes[x].breadth = xSizes[x].base;
 								
 							}
 							
@@ -1707,6 +1711,50 @@ var cssGrid = (function(window, document) {
 				}
 			}
 			
+			var computeFinalTrackBreadth = function(xSizes, this_xSizes, fullWidth, getMinWidthOf, getMaxWidthOf, getXStartOf, getXEndOf) {
+				
+				// compute base and limit
+				computeTrackBreadth.call(
+					this,
+					xSizes,
+					this_xSizes,
+					getMinWidthOf,
+					getMaxWidthOf,
+					getXStartOf,
+					getXEndOf
+				);
+				
+				// ResolveContentBasedTrackSizingFunctions (step 4)
+				for(var x = this_xSizes.length; x--;) {
+					if(xSizes[x].limit == infinity) { xSizes[x].limit = xSizes[x].base; }
+				}
+				
+				// grow tracks up to their max
+				computeTrackBreadthIncrease.call(
+					this,
+					xSizes,
+					this_xSizes,
+					fullWidth,
+					getMinWidthOf,
+					getMaxWidthOf,
+					getXStartOf,
+					getXEndOf
+				);
+				
+				// handle flexible things
+				computeFlexibleTrackBreadth.call(
+					this,
+					xSizes,
+					this_xSizes,
+					fullWidth,
+					getMinWidthOf,
+					getMaxWidthOf,
+					getXStartOf,
+					getXEndOf
+				);
+
+			}
+			
 			///////////////////////////////////////////////////////////
 			// compute breadth of columns
 			///////////////////////////////////////////////////////////
@@ -1714,36 +1762,21 @@ var cssGrid = (function(window, document) {
 			var fullSize = fullWidth;
 			var xSizes = this.xSizes.map(initializeFromConstraints);
 			
+			var getMinWidthOf = function(item) { return item.minWidth; };
+			var getMaxWidthOf = function(item) { return item.maxWidth; };
+			var getXStartOf = function(item) { return item.xStart; }; 
+			var getXEndOf = function(item) { return item.xEnd; };
+			
 			// compute base and limit
-			computeTrackBreadth.call(
+			computeFinalTrackBreadth.call(
 				this,
 				xSizes,
 				this.xSizes,
-				function(item) { return item.minWidth; },
-				function(item) { return item.maxWidth; },
-				function(item) { return item.xStart; },
-				function(item) { return item.xEnd; }
-			);
-			
-			// ResolveContentBasedTrackSizingFunctions (step 4)
-			for(var x = this.xSizes.length; x--;) {
-				if(xSizes[x].limit == infinity) { xSizes[x].limit = xSizes[x].base; }
-			}
-			
-			// grow tracks up to their max
-			computeTrackBreadthIncrease.call(
-				this,
-				xSizes,
-				this.xSizes,
-				fullWidth
-			);
-			
-			// handle flexible things
-			computeFlexibleTrackBreadth.call(
-				this,
-				xSizes,
-				this.xSizes,
-				fullWidth
+				fullWidth,
+				getMinWidthOf,
+				getMaxWidthOf,
+				getXStartOf,
+				getXEndOf
 			);
 			
 			///////////////////////////////////////////////////////////
@@ -1753,7 +1786,7 @@ var cssGrid = (function(window, document) {
 				position: enforceStyle(this.element, "position", ["relative","absolute","fixed"]),
 				items: this.items.map(function(item) {
 					
-					// firstly, compute the breadth of all tracks
+					// firstly, compute the total breadth of the spanned tracks
 					var totalBreadth = 0;
 					for(var cx = item.xStart; cx<item.xEnd; cx++) {
 						totalBreadth += xSizes[cx].base;
@@ -1778,37 +1811,22 @@ var cssGrid = (function(window, document) {
 			var fullSize = fullHeight;
 			var ySizes = this.ySizes.map(initializeFromConstraints);
 			
-			computeTrackBreadth.call(
+			var getMinHeightOf = function(item) { return item.element.offsetHeight; };
+			var getMaxHeightOf = function(item) { return item.element.offsetHeight; };
+			var getYStartOf = function(item) { return item.yStart; };
+			var getYEndOf = function(item) { return item.yEnd; };
+			
+			computeFinalTrackBreadth.call(
 				this,
 				ySizes,
 				this.ySizes,
-				function(item) { return item.element.offsetHeight; },
-				function(item) { return item.element.offsetHeight; },
-				function(item) { return item.yStart; },
-				function(item) { return item.yEnd; }
+				fullHeight,
+				getMinHeightOf,
+				getMaxHeightOf,
+				getYStartOf,
+				getYEndOf
 			);
-			
-			// ResolveContentBasedTrackSizingFunctions (step 4)
-			for(var y = this.ySizes.length; y--;) {
-				if(ySizes[y].limit == infinity) { ySizes[y].limit = ySizes[y].base; }
-			}
-			
-			// grow tracks up to their max
-			computeTrackBreadthIncrease.call(
-				this,
-				ySizes,
-				this.ySizes,
-				0 // TODO: ...
-			);
-			
-			// handle flexible things
-			computeFlexibleTrackBreadth.call(
-				this,
-				ySizes,
-				this.ySizes,
-				0 // TODO: ...
-			);
-						
+									
 			///////////////////////////////////////////////////////////
 			// release the override style of elements
 			///////////////////////////////////////////////////////////
@@ -1871,7 +1889,9 @@ var cssGrid = (function(window, document) {
 			if(["absolute","fixed"].indexOf(s.getPropertyValue("position")) >= 0) { enforceStyle(this.element, "width", width+'px'); }
 			if(["auto","0px"].indexOf(s.getPropertyValue("height")) >= 0) { enforceStyle(this.element, "height", height+'px'); }
 
-			
+			// set the position and sizing of each elements
+			var items_widths = []; var items_heights = []; 
+			items_widths.length = items_heights.length = this.items.length;
 			for(var i=this.items.length; i--;) { var item = this.items[i]; 
 				
 				item.element.style.setProperty("position", "absolute");
@@ -1898,11 +1918,28 @@ var cssGrid = (function(window, document) {
 					
 				item.element.style.setProperty("top" , top +'px');
 				item.element.style.setProperty("left", left+'px');
-				// TODO: if(width >= item.minWidth || usedStyleOf(item.element)) 
-				// TODO: same for height
-				item.element.style.setProperty("width" , width +'px');
-				item.element.style.setProperty("height", height+'px');
 				
+				items_widths[i] = width;
+				items_heights[i] = height;
+				
+			}
+			
+			// if horizontal stretch
+			if(true) { // TODO: horizontal stretch
+				for(var i=this.items.length; i--;) { var item = this.items[i]; var width = items_widths[i];
+					if(item.element.offsetWidth <= width) {
+						item.element.style.setProperty("width" , width +'px');
+					}
+				}
+			}
+			
+			// if vertical stretch
+			if(true) { // TODO: vertical stretch
+				for(var i=this.items.length; i--;) { var item = this.items[i]; var height = items_heights[i];
+					if(item.element.offsetHeight <= height) {
+						item.element.style.setProperty("height", height+'px');
+					}
+				}
 			}
 			
 		},
@@ -2164,7 +2201,7 @@ var cssGrid = (function(window, document) {
 		
 	}
 	
-	var cssGrid = { 
+	var cssGrid = {
 		
 		LOCATE_LINE   :  LOCATE_LINE,
 		LOCATE_SPAN   :  LOCATE_SPAN,
