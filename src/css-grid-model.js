@@ -1800,7 +1800,7 @@ var cssGrid = (function(window, document) {
 						position: enforceStyle(item.element, "position", "absolute"),
 						width: enforceStyle(item.element, "width", totalBreadth+'px')
 					};
-						
+					
 				})
 			}
 			
@@ -1945,6 +1945,10 @@ var cssGrid = (function(window, document) {
 		},
 		
 		findXStart: function(item) {
+		
+			//////////////////////////////////////////////////////////////////////////////
+			// TODO: this doesn't reflect the spec after the changes made at my request //
+			//////////////////////////////////////////////////////////////////////////////
 			
 			var xStart = -1;
 			if(item.specifiedXStart.type !== LOCATE_LINE) return -1;
