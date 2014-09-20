@@ -1,5 +1,18 @@
-var cssGrid = (function(window, document) {
+module.exports = (function(window, document) { "use strict";
 	
+	// import dependencies
+	
+	var cssSyntax = require('css-syntax');
+	
+	var cssStyle  = require('css-style'),
+	    usedStyleOf     = cssStyle.usedStyleOf,
+	    currentStyleOf  = cssStyle.currentStyleOf,
+	    enforceStyle    = cssStyle.enforceStyle,
+	    restoreStyle    = cssStyle.restoreStyle;
+	
+	var cssSizing = require('css-sizing');
+	
+	// define the module
 	var LOCATE_AUTO = 0;
 	var LOCATE_LINE = 1;
 	var LOCATE_SPAN = 2;
@@ -92,7 +105,7 @@ var cssGrid = (function(window, document) {
 	function GridItem(element, parentGrid) {
 		
 		this.element = element;
-		this.parentGrid = parentGrid;
+		this.parentGrid = element.parentGridLayout = parentGrid;
 		
 		this.reset();
 		this.buggy = true;
@@ -100,7 +113,11 @@ var cssGrid = (function(window, document) {
 	}
 	
 	GridItem.prototype = {
-	
+		
+		dispose: function() {
+			this.element.parentGridLayout = undefined;
+		},
+		
 		reset: function() {
 			
 			this.minWidth = 0;
@@ -146,7 +163,7 @@ var cssGrid = (function(window, document) {
 		updateFromElement: function() {
 			
 			var element = this.element;
-			var style = element;//usedStyleOf(element); // TODO: use css cascading polyfill instead
+			var style = (!window.useRealStyle) ? element : currentStyleOf(element); // TODO: use css cascading polyfill instead
 			
 			this.reset(); 
 			this.buggy = false;
@@ -419,35 +436,45 @@ var cssGrid = (function(window, document) {
 	function GridLayout(element) {
 	
 		// items
-		this.element = element;
+		this.element = element; this.element.gridLayout = this;
 		this.items = []; // array of GridItem
-		
-		// computed
-		this.xLines = []; // array of array of names
-		this.xSizes = []; // array of numbers (in pixels)
-		
-		this.yLines = [];
-		this.ySizes = [];
 
-		this.growX = false;
-		this.growY = true;
-		this.growDense = false;
+		// reset
+		this.reset();
 		
-		this.rcMatrix = []; // array of array of (whatever is not undefined, probably "true")
-		
-		// specified
-		this.specifiedXLines = [];
-		this.specifiedXSizes = [];
-		
-		this.specifiedYLines = [];
-		this.specifiedYSizes = [];
-		
-		this.defaultXSize = new GridTrackBreadth();
-		this.defaultYSize = new GridTrackBreadth();
+		// other fields
+		this.isLayoutScheduled = false;
 		
 	}
 	
 	GridLayout.prototype = {
+	
+		reset: function() {
+			
+			// computed
+			this.xLines = []; // array of array of names
+			this.xSizes = []; // array of numbers (in pixels)
+			
+			this.yLines = [];
+			this.ySizes = [];
+
+			this.growX = false;
+			this.growY = true;
+			this.growDense = false;
+			
+			this.rcMatrix = []; // array of array of (whatever is not undefined, probably "true")
+			
+			// specified
+			this.specifiedXLines = [];
+			this.specifiedXSizes = [];
+			
+			this.specifiedYLines = [];
+			this.specifiedYSizes = [];
+			
+			this.defaultXSize = new GridTrackBreadth();
+			this.defaultYSize = new GridTrackBreadth();
+
+		},
 	
 		R: function R(x,y) { 
 			if(this.growY) {
@@ -469,6 +496,48 @@ var cssGrid = (function(window, document) {
 			}
 		},
 		
+		dispose: function() {
+			for(var i = this.items.length; i--;) { var item = this.items[i];
+				item.dispose();
+			}
+			this.element.gridLayout = undefined;
+		},
+		
+		updateFromElement: function() {
+			
+			// delete old items
+			for(var i = this.items.length; i--;) { var item = this.items[i];
+				item.dispose();
+			}
+			
+			// add new items
+			this.items.length = 0;
+			var currentItem = this.element.firstElementChild;
+			while(currentItem) {
+				
+				// add a new grid item for the element
+				var newGridItem = new GridItem(currentItem, this);
+				newGridItem.updateFromElement();
+				this.items.push(newGridItem);
+				
+				// move to the next element
+				currentItem = currentItem.nextElementSibling;
+			}
+			
+			// reset the style
+			this.reset();
+			
+			// update its own style
+			var style = usedStyleOf(this.element); var cssText = '';
+			if(cssText=style["grid-template"])         { this.parseGridTemplate(cssText);    }
+			if(cssText=style["grid-template-areas"])   { this.parseAreasTemplate(cssText);   }
+			if(cssText=style["grid-template-rows"])    { this.parseRowsTemplate(cssText);    }
+			if(cssText=style["grid-template-columns"]) { this.parseColumnsTemplate(cssText); }
+			if(cssText=style["grid-auto-rows"]) { this.parseAutoRowsBreadth(cssText); } // check spec name, then propagate to listeners
+			if(cssText=style["grid-auto-columns"]) { this.parseAutoColumnsBreadth(cssText); }
+			
+		},
+		
 		resetItems: function() {
 			for(var i = this.items.length; i--;) {
 				var item = this.items[i]; 
@@ -481,6 +550,130 @@ var cssGrid = (function(window, document) {
 			this.xSizes = this.specifiedXSizes.slice(0);
 			this.yLines = this.specifiedYLines.slice(0);
 			this.ySizes = this.specifiedYSizes.slice(0);
+		},
+		
+		parseTrackBreadthToken: function(cssToken) {
+			
+			// try to match a pattern
+			if(cssToken instanceof cssSyntax.IdentifierToken) {
+				
+				if(cssToken.value == "auto") {
+					return { type: TRACK_BREADTH_AUTO, value:"auto" };
+				} else if(cssToken.value == "min-content") {
+					return { type: TRACK_BREADTH_MIN_CONTENT, value:"min-content" };
+				} else if(cssToken.value == "max-content") {
+					return { type: TRACK_BREADTH_MAX_CONTENT, value:"max-content" };
+				}
+				
+			} else if(cssToken instanceof cssSyntax.DimensionToken) {
+				
+				if(cssToken.unit == "fr") {
+					return { type: TRACK_BREADTH_FRACTION, value:cssToken.num };
+				} else {
+					return { type: TRACK_BREADTH_LENGTH, value:cssUnits.convertToPixels(cssToken.toCSSString(), this.element) };
+				}
+				
+			} else if(cssToken instanceof cssSyntax.PercentageToken) {
+				
+				return { type: TRACK_BREADTH_PERCENTAGE, value:cssToken.value };
+				
+			} else {
+				
+				// TODO: recognize "calc()", too
+				
+			}
+			
+			return null;
+		},
+		
+		parseTrackBreadth: function(value, I) {
+		
+			// TODO: try catch on null parsed token
+			
+			var currentTrackBreadth = new GridTrackBreadth();
+			var parseTrackBreadthToken = function() {
+				
+				// try to match a pattern
+				var result = this.parseTrackBreadthToken(value[I]);
+				if(result) { I++; return result; }
+				
+				// no pattern matched, so the declaration is invalid:
+				console.error("INVALID DECLARATION: grid-template-rows/columns: "+value.toCSSString()+" (unrecognized track breadth)");
+				buggy = true;
+				return;
+				
+			}
+			
+			if(value[I] instanceof cssSyntax.Func && value[I].name=="minmax") {
+									
+				// we need to parse two subvalues
+				var value_backup = value;
+				var I_backup = I;
+				
+				// check we have exactly two arguments
+				if(value_backup[I_backup].value.length != 2) { 
+					console.error("INVALID DECLARATION: grid-template-rows/columns: "+value_backup.toCSSString()+" (invalid number of arguments to the minmax function)");
+					buggy = true;
+					return;
+				}
+				
+				// here's the first one:
+				value = value_backup[I_backup].value[0].value.filter(function(t) { return !(t instanceof cssSyntax.WhitespaceToken) }); I = 0;				
+				var data = parseTrackBreadthToken.call(this);
+				currentTrackBreadth.minType = data.type;
+				currentTrackBreadth.minValue = data.value;
+				
+				// here's the second one:
+				value = value_backup[I_backup].value[1].value.filter(function(t) { return !(t instanceof cssSyntax.WhitespaceToken) }); I = 0;				
+				var data = parseTrackBreadthToken.call(this);
+				currentTrackBreadth.maxType  = data.type;
+				currentTrackBreadth.maxValue = data.value;
+				
+				// restore context
+				value = value_backup;
+				I = I_backup+1;
+				
+			} else {
+			
+				// we need to parse only one value
+				var data = parseTrackBreadthToken.call(this);
+				currentTrackBreadth.minType  = currentTrackBreadth.maxType  = data.type;
+				currentTrackBreadth.minValue = currentTrackBreadth.maxValue = data.value;
+
+			}
+				
+			return { result: currentTrackBreadth, I:I };
+			
+		},
+		
+		parseAutoRowsBreadth: function(cssText) {
+		
+			// TODO: check that no tokens are left when the parsing is done (+columns)
+			
+			// parse value into tokens:
+			var unfiltred_value = cssSyntax.parseCSSValue(cssText);
+			var value = unfiltred_value.filter(function(o) { return !(o instanceof cssSyntax.WhitespaceToken); });
+			value.toCSSString = function() { return unfiltred_value.toCSSString(); }
+			
+			// parse tokens into data:
+			var data = this.parseTrackBreadth(value, 0);
+			if(data.result) { this.defaultYSize = data.result; } else { throw "TODO: better error message"; }
+			return;
+			
+		},
+		
+		parseAutoColumnsBreadth: function(cssText) {
+			
+			// parse value into tokens:
+			var unfiltred_value = cssSyntax.parseCSSValue(cssText);
+			var value = unfiltred_value.filter(function(o) { return !(o instanceof cssSyntax.WhitespaceToken); });
+			value.toCSSString = function() { return unfiltred_value.toCSSString(); }
+			
+			// parse tokens into data:
+			var data = this.parseTrackBreadth(value, 0);
+			if(data.result) { this.defaultXSize = data.result; } else { throw "TODO: better error message"; }
+			return;
+			
 		},
 		
 		parseGridTemplate: function(cssText) { // TODO: I used some lazy heuristics here
@@ -648,85 +841,9 @@ var cssGrid = (function(window, document) {
 			
 			var parseTrackBreadth = function() {
 				
-				var currentTrackBreadth = new GridTrackBreadth();
-				var parseTrackBreadthToken = function() {
-					
-					// try to match a pattern
-					if(value[I] instanceof cssSyntax.IdentifierToken) {
-						
-						if(value[I].value == "auto") {
-							return I++, { type: TRACK_BREADTH_AUTO, value:"auto" };
-						} else if(value[I].value == "min-content") {
-							return I++, { type: TRACK_BREADTH_MIN_CONTENT, value:"min-content" };
-						} else if(value[I].value == "max-content") {
-							return I++, { type: TRACK_BREADTH_MAX_CONTENT, value:"max-content" };
-						}
-						
-					} else if(value[I] instanceof cssSyntax.DimensionToken) {
-						
-						if(value[I].unit == "fr") {
-							return { type: TRACK_BREADTH_FRACTION, value:value[I++].num };
-						} else {
-							return { type: TRACK_BREADTH_LENGTH, value:cssUnits.convertToPixels(value[I++].toCSSString(), this.element) };
-						}
-						
-					} else if(value[I] instanceof cssSyntax.PercentageToken) {
-						
-						return { type: TRACK_BREADTH_PERCENTAGE, value:value[I++].value };
-						
-					} else {
-						
-						// TODO: recognize "calc()", too
-						
-					}
-					
-					// no pattern matched, so the declaration is invalid:
-					console.error("INVALID DECLARATION: grid-template-rows/columns: "+value.toCSSString()+" (unrecognized track breadth)");
-					buggy = true;
-					return;
-					
-				}
-				
-				if(value[I] instanceof cssSyntax.Func && value[I].name=="minmax") {
-										
-					// we need to parse two subvalues
-					var value_backup = value;
-					var I_backup = I;
-					
-					// check we have exactly two arguments
-					if(value_backup[I_backup].value.length != 2) { 
-						console.error("INVALID DECLARATION: grid-template-rows/columns: "+value_backup.toCSSString()+" (invalid number of arguments to the minmax function)");
-						buggy = true;
-						return;
-					}
-					
-					// here's the first one:
-					value = value_backup[I_backup].value[0].value.filter(function(t) { return !(t instanceof cssSyntax.WhitespaceToken) }); I = 0;				
-					var data = parseTrackBreadthToken.call(this);
-					currentTrackBreadth.minType = data.type;
-					currentTrackBreadth.minValue = data.value;
-					
-					// here's the second one:
-					value = value_backup[I_backup].value[1].value.filter(function(t) { return !(t instanceof cssSyntax.WhitespaceToken) }); I = 0;				
-					var data = parseTrackBreadthToken.call(this);
-					currentTrackBreadth.maxType  = data.type;
-					currentTrackBreadth.maxValue = data.value;
-					
-					// restore context
-					value = value_backup;
-					I = I_backup+1;
-					
-				} else {
-				
-					// we need to parse only one value
-					var data = parseTrackBreadthToken.call(this);
-					currentTrackBreadth.minType  = currentTrackBreadth.maxType  = data.type;
-					currentTrackBreadth.minValue = currentTrackBreadth.maxValue = data.value;
-
-				}
-				
-				trackBreadths.push(currentTrackBreadth);
-				currentTrackBreadth = new GridTrackBreadth();
+				var data = this.parseTrackBreadth(value, I);
+				trackBreadths.push(data.result);
+				I = data.I;
 				
 			};
 			
@@ -1050,8 +1167,25 @@ var cssGrid = (function(window, document) {
 			
 		},
 		
+		scheduleRelayout: function() {
+			var This = this;
+			if(!This.isLayoutScheduled) {
+				This.isLayoutScheduled = true;
+				requestAnimationFrame(function() {
+					try {
+						This.revokePolyfilledStyle();
+						This.updateFromElement();
+						This.performLayout();
+						This.generatePolyfilledStyle();
+					} finally {
+						This.isLayoutScheduled = false;
+					}
+				});
+			}
+		},
+		
 		performLayout: function() {
-			
+		
 			// process non-automatic items
 			this.buildImplicitMatrix();
 
@@ -1882,19 +2016,19 @@ var cssGrid = (function(window, document) {
 				height += ySizes[y].breadth;
 			}
 			
-			enforceStyle(this.element, "display", "block");
-			enforceStyle(this.element, "position", ["relative","absolute","fixed"]);
+			this.element.backupDisplay = enforceStyle(this.element, "display", "block");
+			this.element.backupPosition = enforceStyle(this.element, "position", ["relative","absolute","fixed"]);
 			
 			var s = usedStyleOf(this.element);
-			if(["absolute","fixed"].indexOf(s.getPropertyValue("position")) >= 0) { enforceStyle(this.element, "width", width+'px'); }
-			if(["auto","0px"].indexOf(s.getPropertyValue("height")) >= 0) { enforceStyle(this.element, "height", height+'px'); }
+			if(["absolute","fixed"].indexOf(s.getPropertyValue("position")) >= 0) { this.element.backupWidth = enforceStyle(this.element, "width", width+'px'); }
+			if(["auto","0px"].indexOf(s.getPropertyValue("height")) >= 0) { this.element.backupHeight = enforceStyle(this.element, "height", height+'px'); }
 
 			// set the position and sizing of each elements
 			var items_widths = []; var items_heights = []; 
 			items_widths.length = items_heights.length = this.items.length;
 			for(var i=this.items.length; i--;) { var item = this.items[i]; 
 				
-				item.element.style.setProperty("position", "absolute");
+				item.element.backupPosition = enforceStyle(item.element, "position", "absolute");
 				
 				var left = 0;
 				for(var x = 0; x<item.xStart; x++) {
@@ -1916,8 +2050,8 @@ var cssGrid = (function(window, document) {
 					height += ySizes[y].breadth;
 				}
 					
-				item.element.style.setProperty("top" , top +'px');
-				item.element.style.setProperty("left", left+'px');
+				item.element.backupTop = enforceStyle(item.element, "top" , top +'px');
+				item.element.backupLeft = enforceStyle(item.element, "left", left+'px');
 				
 				items_widths[i] = width;
 				items_heights[i] = height;
@@ -1927,8 +2061,8 @@ var cssGrid = (function(window, document) {
 			// if horizontal stretch
 			if(true) { // TODO: horizontal stretch
 				for(var i=this.items.length; i--;) { var item = this.items[i]; var width = items_widths[i];
-					if(item.element.offsetWidth <= width) {
-						item.element.style.setProperty("width" , width +'px');
+					if(item.minWidth <= width) { // TODO: fix that...
+						item.element.backupWidth = enforceStyle(item.element, "width" , width +'px');
 					}
 				}
 			}
@@ -1937,9 +2071,28 @@ var cssGrid = (function(window, document) {
 			if(true) { // TODO: vertical stretch
 				for(var i=this.items.length; i--;) { var item = this.items[i]; var height = items_heights[i];
 					if(item.element.offsetHeight <= height) {
-						item.element.style.setProperty("height", height+'px');
+						item.element.backupHeight = enforceStyle(item.element, "height", height+'px');
 					}
 				}
+			}
+			
+		},
+		
+		revokePolyfilledStyle: function() {
+			
+			var item = this.element;
+			restoreStyle(item, item.backupWidth);     item.backupWidth = undefined;
+			restoreStyle(item, item.backupHeight);    item.backupHeight = undefined;
+			restoreStyle(item, item.backupDisplay);   item.backupDisplay = undefined;
+			restoreStyle(item, item.backupPosition);  item.backupPosition = undefined;
+			
+			for(var i = this.items.length; i--;) { var item = this.items[i].element;
+				restoreStyle(item, item.backupTop);      item.backupTop = undefined;
+				restoreStyle(item, item.backupLeft);      item.backupLeft = undefined;
+				restoreStyle(item, item.backupWidth);     item.backupWidth = undefined;
+				restoreStyle(item, item.backupHeight);    item.backupHeight = undefined;
+				restoreStyle(item, item.backupDisplay);   item.backupDisplay = undefined;
+				restoreStyle(item, item.backupPosition);  item.backupPosition = undefined;
 			}
 			
 		},

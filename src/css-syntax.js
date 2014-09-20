@@ -2,28 +2,30 @@
 // note: this file is based on Tab Atkins's CSS Parser
 // please include him (@tabatkins) if you open any issue for this file
 // 
-"use strict";
+module.exports = (function(window, document) { "use strict";
 
-var cssSyntax = { 
-    tokenize: function(string) {}, 
-    parse: function(tokens) {},
-    parseCSSValue: function(bestValue, stringOnly) {
-        if(stringOnly) {
-            var result = /*bestValue ? cssSyntax.parse("*{a:"+bestValue+"}").value[0].value[0].value : */new cssSyntax.TokenList();
-            result.asCSSString = bestValue; // optimize conversion
-            return result;
-        } else {
-            var result = bestValue ? cssSyntax.parse("*{a:"+bestValue+"}").value[0].value[0].value : new cssSyntax.TokenList();
-            result.asCSSString = bestValue; // optimize conversion
-            return result;
-        }
-    }
-};
+	// 
+	// exports
+	//
+	var cssSyntax = { 
+		tokenize: function(string) {}, 
+		parse: function(tokens) {},
+		parseCSSValue: function(bestValue, stringOnly) {
+			if(stringOnly) {
+				var result = /*bestValue ? cssSyntax.parse("*{a:"+bestValue+"}").value[0].value[0].value : */new cssSyntax.TokenList();
+				result.asCSSString = bestValue; // optimize conversion
+				return result;
+			} else {
+				var result = bestValue ? cssSyntax.parse("*{a:"+bestValue+"}").value[0].value[0].value : new cssSyntax.TokenList();
+				result.asCSSString = bestValue; // optimize conversion
+				return result;
+			}
+		}
+	};
 
-//
-// css tokenizer
-//
-(function() {
+	//
+	// css tokenizer
+	//
     
     var between = function (num, first, last) { return num >= first && num <= last; }
     function digit(code) { return between(code, 0x30,0x39); }
@@ -785,13 +787,10 @@ var cssSyntax = {
     
     // Exportation.
     cssSyntax.tokenize = tokenize;
-    
-}());
-
-//
-// css parser
-//
-(function() {
+	
+	//
+	// css parser
+	//
     
     var TokenList = cssSyntax.TokenList;
     function parse(tokens) {
@@ -1176,5 +1175,6 @@ var cssSyntax = {
     
     // Exportation.
     cssSyntax.parse = parse;
+	return cssSyntax;
 
-}())
+}());

@@ -1,5 +1,13 @@
-var cssSizing = (function(window, document) {
-		
+module.exports = (function(window, document) {
+	
+	// import dependencies
+	var cssStyle  = require('css-style'),
+	    usedStyleOf     = cssStyle.usedStyleOf,
+	    currentStyleOf  = cssStyle.currentStyleOf,
+	    enforceStyle    = cssStyle.enforceStyle,
+	    restoreStyle    = cssStyle.restoreStyle;
+	
+	// define the module
 	var cssSizing = {
 		
 		absoluteMinWidthOf: function(element) {
