@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Testing code</title>
+		<style>
+			* { font-family: Calibri, sans-serif; font-size: 15px; font-weight: bold; }
+			#main { max-width: 200px; }
+			#main { display: my-grid; grid-template-rows: auto auto; grid-template-columns: auto auto auto; }
+			#main > span { background: yellow; color: red; grid-row: 1; grid-column: 1; }
+			#main > input[value="2"] { grid-row: 1; grid-column: 2; color: green; }
+			#main > input[value="3"] { grid-row: 1; grid-column: 3; color: blue; }
+			#main > input[value="X"] { grid-row: 2; grid-column: 1 / span 2; color: red; }
+			#main > input[value="X"]:hover { grid-column: 1 / span 3; }
+		</style>
+	</head>
+	<body>
+
+		<section id="main">
+			
+			<span>1: This very long text will maybe span across multiple lines</span>
+			<input type="button" value="2" />
+			<input type="button" value="3" />
+			<input type="button" value="X" />
+			
+		</section>
+		<script src="../../bin/css-polyfills.min.js"></script>
+	</body>
+</html>
