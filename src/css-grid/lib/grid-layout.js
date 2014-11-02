@@ -38,7 +38,7 @@ module.exports = (function(window, document) { "use strict";
 			set: function(element, properties) {
 				
 				// give an id to the element
-				element.id = element.id || element.uniqueID;
+				if(!element.id) { element.id = element.uniqueID; }
 			
 				// compute the css rule to add
 				var rule = "#"+element.id+" {";

@@ -47,14 +47,35 @@
 						element.gridLayout.scheduleRelayout();
 					
 						// TODO: watch DOM for updates in the element?
+						if("MutationObserver" in window) {
+							var observer = new MutationObserver(function(e) {
+								element.gridLayout.scheduleRelayout();
+							});
+							var target = document.documentElement;
+							var config = { 
+								subtree: true, 
+								attributes: false, 
+								childList: true, 
+								characterData: true
+							};
+							observer.observe(target, config);
+						} else if("MutationEvent" in window) {
+							element.addEventListener('DOMSubtreeModified', function() {
+								if(!element.gridLayout.isLayoutScheduled) { element.gridLayout.scheduleRelayout(); }
+							}, true);
+						}
 						// TODO: watch resize events for relayout?
 						var lastWidth = element.offsetWidth;
 						var lastHeight = element.offsetHeight;
 						var updateOnResize = function() {
 							if(lastWidth != element.offsetWidth || lastHeight != element.offsetHeight) {
+								// update last known size
 								lastWidth = element.offsetWidth;
 								lastHeight = element.offsetHeight;
+								// relayout (and prevent double-dispatch)
+								if(observer) { observer.takeRecords(); observer.disconnect(element); }
 								element.gridLayout.scheduleRelayout();
+								if(observer) { observer.takeRecords(); observer.observe(element, config); }
 							}
 							requestAnimationFrame(updateOnResize);
 						}
