@@ -1,4 +1,4 @@
-/*! CSS-POLYFILLS - v0.1.0 - 2014-11-03 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2014 François REMY; MIT-Licensed !*/
+/*! CSS-POLYFILLS - v0.1.0 - 2014-11-20 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2014 François REMY; MIT-Licensed !*/
 
 !(function() { 'use strict';
     var module = { exports:{} };
@@ -121,7 +121,7 @@ module.exports = (function(window, document) { "use strict";
     function namestartchar(code) { return letter(code) || nonascii(code) || code == 0x5f; }
     function namechar(code) { return namestartchar(code) || digit(code) || code == 0x2d; }
     function nonprintable(code) { return between(code, 0,8) || between(code, 0xe,0x1f) || between(code, 0x7f,0x9f); }
-    function newline(code) { return code == 0xa || code == 0xc; }
+    function newline(code) { return code >= 0xa && code <= 0xd; }
     function whitespace(code) { return newline(code) || code == 9 || code == 0x20; }
     function badescape(code) { return newline(code) || isNaN(code); }
     
@@ -1264,6 +1264,7 @@ module.exports = (function(window, document) { "use strict";
 	return cssSyntax;
 
 }());
+
 require.define('src/core/css-syntax.js');
 
 ////////////////////////////////////////
