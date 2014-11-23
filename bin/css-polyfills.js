@@ -82,6 +82,51 @@ require.define('src/core/polyfill-dom-console.js');
 
 ////////////////////////////////////////
 
+void function() {
+	
+	// request animation frame
+    var vendors = ['webkit', 'moz', 'ms', 'o'];
+    for (var i = 0; i < vendors.length && !window.requestAnimationFrame; ++i) {
+        var vp = vendors[i];
+        window.requestAnimationFrame = window[vp+'RequestAnimationFrame'];
+        window.cancelAnimationFrame = (window[vp+'CancelAnimationFrame'] || window[vp+'CancelRequestAnimationFrame']);
+    }
+    if (!window.requestAnimationFrame || !window.cancelAnimationFrame) {
+		
+		// tick every 16ms
+        var listener_index = 0; var listeners = []; var tmp = []; var tick = function() {
+			var now = +(new Date()); var callbacks = listeners; listeners = tmp;
+			for(var i = 0; i<callbacks.length; i++) { callbacks[i](now); }
+			listener_index += callbacks.length; callbacks.length = 0; tmp = callbacks;
+			setTimeout(tick, 16);
+		}; tick();
+		
+		// add a listener
+        window.requestAnimationFrame = function(callback) {
+            return listener_index + listeners.push(callback);
+        };
+		
+		// remove a listener
+        window.cancelAnimationFrame = function(index) {
+			index -= listener_index; if(index >= 0 && index < listeners.length) {
+				listeners[index] = function() {};
+			}
+		};
+		
+    }
+	
+	// setImmediate
+	if(!window.setImmediate) {
+		window.setImmediate = function(f) { return setTimeout(f, 0) };
+		window.cancelImmediate = clearTimeout;
+	}
+	
+}();
+
+require.define('src/core/polyfill-dom-requestAnimationFrame.js');
+
+////////////////////////////////////////
+
 //
 // note: this file is based on Tab Atkins's CSS Parser
 // please include him (@tabatkins) if you open any issue for this file
@@ -1081,7 +1126,7 @@ function consumeAStyleRule(s) {
 			rule.value = consumeASimpleBlock(s);
 			return rule;
 		} else if(s.token instanceof SimpleBlock && s.token.name == "{") {
-			rule.value = token;
+			rule.value = s.token;
 			return rule;
 		} else {
 			s.reconsume();
@@ -1301,6 +1346,9 @@ AtRule.prototype.toCSSString = function() {
 	} else {
 		return "@" + escapeIdent(this.name) + " " + this.prelude.toCSSString() + '; '; 
 	}
+}
+AtRule.prototype.getStylesheet = function() {
+	return this.asStylesheet || (this.asStylesheet = this.value ? parseAStylesheet(this.value.value) : new Stylesheet());
 }
 
 function StyleRule() {
@@ -2205,6 +2253,7 @@ module.exports = (function(window, document) { "use strict";
 	
 	// import dependencies
 	require('src/core/polyfill-dom-console.js');
+	require('src/core/polyfill-dom-requestAnimationFrame.js');
 	var cssSyntax = require('src/core/css-syntax.js');
 	var domEvents = require('src/core/dom-events.js');
 	var querySelectorLive = require('src/core/dom-query-selector-live.js');
@@ -2346,12 +2395,8 @@ module.exports = (function(window, document) { "use strict";
 							
 						} else if(rule instanceof cssSyntax.AtRule && rule.name=="media") {
 							
-							// extract rules out of the media block
-							var nestedContent = rule.value;
-							if(!(nestedContent instanceof cssSyntax.SimpleBlock)) { continue; }
-							
-							// visit them
-							visit(nestedContent.value);
+							// visit the nested rules
+							visit(rules[i].getStylesheet().value);							
 							
 						}
 						
@@ -2575,12 +2620,8 @@ module.exports = (function(window, document) { "use strict";
 							}
 						} else if((rules[i] instanceof cssSyntax.AtRule) && (rules[i].name=="media")) {
 							
-							// extract rules out of the media block
-							var nestedContent = rule.value;
-							if(!(nestedContent instanceof cssSyntax.SimpleBlock)) { continue; }
-							
-							// visit them
-							visit(nestedContent.value);
+							// visit the nested rules
+							visit(rules[i].getStylesheet().value);
 							
 						}
 						
@@ -2797,13 +2838,14 @@ module.exports = (function(window, document) { "use strict";
 				var media = window.matchMedia(atrule.prelude.toCSSString());
 				
 				// update all the rules when needed
-				cssCascade.updateMedia(atrule.getDeclarations(), !media.matches, false);
+				var rules = atrule.getStylesheet().value;
+				cssCascade.updateMedia(rules, !media.matches, false);
 				media.addListener(
-					function(newMedia) { cssCascade.updateMedia(atrule.value, !newMedia.matches, true); }
+					function(newMedia) { cssCascade.updateMedia(rules, !newMedia.matches, true); }
 				);
 				
 				// it seems I like taking risks...
-				cssCascade.startMonitoringStylesheet(atrule.value);
+				cssCascade.startMonitoringStylesheet(rules);
 				
 			} catch(ex) {
 				setImmediate(function() { throw ex; })
@@ -3146,51 +3188,6 @@ void function() {
 	}
 }();
 require.define('src/core/polyfill-dom-uniqueID.js');
-
-////////////////////////////////////////
-
-void function() {
-	
-	// request animation frame
-    var vendors = ['webkit', 'moz', 'ms', 'o'];
-    for (var i = 0; i < vendors.length && !window.requestAnimationFrame; ++i) {
-        var vp = vendors[i];
-        window.requestAnimationFrame = window[vp+'RequestAnimationFrame'];
-        window.cancelAnimationFrame = (window[vp+'CancelAnimationFrame'] || window[vp+'CancelRequestAnimationFrame']);
-    }
-    if (!window.requestAnimationFrame || !window.cancelAnimationFrame) {
-		
-		// tick every 16ms
-        var listener_index = 0; var listeners = []; var tmp = []; var tick = function() {
-			var now = +(new Date()); var callbacks = listeners; listeners = tmp;
-			for(var i = 0; i<callbacks.length; i++) { callbacks[i](now); }
-			listener_index += callbacks.length; callbacks.length = 0; tmp = callbacks;
-			setTimeout(tick, 16);
-		}; tick();
-		
-		// add a listener
-        window.requestAnimationFrame = function(callback) {
-            return listener_index + listeners.push(callback);
-        };
-		
-		// remove a listener
-        window.cancelAnimationFrame = function(index) {
-			index -= listener_index; if(index >= 0 && index < listeners.length) {
-				listeners[index] = function() {};
-			}
-		};
-		
-    }
-	
-	// setImmediate
-	if(!window.setImmediate) {
-		window.setImmediate = function(f) { return setTimeout(f, 0) };
-		window.cancelImmediate = clearTimeout;
-	}
-	
-}();
-
-require.define('src/core/polyfill-dom-requestAnimationFrame.js');
 
 ////////////////////////////////////////
 
