@@ -729,26 +729,27 @@ module.exports = (function(window, document) { "use strict";
 			}
 			
 			if(value[I] instanceof cssSyntax.Func && value[I].name=="minmax") {
-									
+				
 				// we need to parse two subvalues
 				var value_backup = value;
 				var I_backup = I;
 				
 				// check we have exactly two arguments
-				if(value_backup[I_backup].value.length != 2) { 
+				var args = value_backup[I_backup].getArguments();
+				if(args.length != 2) { 
 					console.error("INVALID DECLARATION: grid-template-rows/columns: "+value_backup.toCSSString()+" (invalid number of arguments to the minmax function)");
 					buggy = true;
 					return;
 				}
 				
 				// here's the first one:
-				value = value_backup[I_backup].value[0].value.filter(function(t) { return !(t instanceof cssSyntax.WhitespaceToken) }); I = 0;				
+				value = args[0].value.filter(function(t) { return !(t instanceof cssSyntax.WhitespaceToken) }); I = 0;				
 				var data = parseTrackBreadthToken.call(this);
 				currentTrackBreadth.minType = data.type;
 				currentTrackBreadth.minValue = data.value;
 				
 				// here's the second one:
-				value = value_backup[I_backup].value[1].value.filter(function(t) { return !(t instanceof cssSyntax.WhitespaceToken) }); I = 0;				
+				value = args[1].value.filter(function(t) { return !(t instanceof cssSyntax.WhitespaceToken) }); I = 0;				
 				var data = parseTrackBreadthToken.call(this);
 				currentTrackBreadth.maxType  = data.type;
 				currentTrackBreadth.maxValue = data.value;

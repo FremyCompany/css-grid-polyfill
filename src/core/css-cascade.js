@@ -16,7 +16,7 @@ module.exports = (function(window, document) { "use strict";
 		// { the return value is an integer, with the same formula as webkit }
 		//
 		computeSelectorPriorityOf: function computeSelectorPriorityOf(selector) {
-			if(typeof selector == "string") selector = cssSyntax.parse(selector+"{}").value[0].selector;
+			if(typeof selector == "string") selector = cssSyntax.parse(selector.trim()+"{}").value[0].selector;
 			
 			var numberOfIDs = 0;
 			var numberOfClasses = 0;
@@ -38,7 +38,7 @@ module.exports = (function(window, document) { "use strict";
 						numberOfTags++; i++;
 						
 					} else if((selector[i] instanceof cssSyntax.Func) && (/^(not|matches)$/i).test(selector[i].name)) {
-						var nestedPriority = this.computeSelectorPriorityOf(selector[i].value[0].value);
+						var nestedPriority = this.computeSelectorPriorityOf(selector[i].value);
 						numberOfTags += nestedPriority % 256; nestedPriority /= 256;
 						numberOfClasses += nestedPriority % 256; nestedPriority /= 256;
 						numberOfIDs += nestedPriority;
@@ -75,114 +75,88 @@ module.exports = (function(window, document) { "use strict";
 		// returns an array of the css rules matching an element
 		//
 		findAllMatchingRules: function findAllMatchingRules(element) {
-			
-			// let's look for new results if needed...
-			var results = [];
-			
-			// walk the whole stylesheet...
-			var visit = function(rules) {
-				for(var r = rules.length; r--; ) {
-					var rule = rules[r]; 
-					
-					// media queries hook
-					if(rule.disabled) continue;
-					
-					if(rule instanceof cssSyntax.StyleRule) {
-						
-						// consider each selector independently
-						var subrules = rule.subRules || cssCascade.splitRule(rule);
-						for(var sr = subrules.length; sr--; ) {
-							
-							var isMatching = false;
-							var selector = subrules[sr].selector.toCSSString();
-							try {
-								if(element.matches) isMatching=element.matches(selector)
-								else if(element.matchesSelector) isMatching=element.matchesSelector(selector)
-								else if(element.oMatchesSelector) isMatching=element.oMatchesSelector(selector)
-								else if(element.msMatchesSelector) isMatching=element.msMatchesSelector(selector)
-								else if(element.mozMatchesSelector) isMatching=element.mozMatchesSelector(selector)
-								else if(element.webkitMatchesSelector) isMatching=element.webkitMatchesSelector(selector)
-								else { throw new Error("Your browser does not support element.matchesSelector, which is required for a script.") }
-							} catch(ex) { cssConsole.warn("Invalid selector " + selector); }
-							
-							if(isMatching) { results.push(subrules[sr]); }
-							
-						}
-						
-					} else if(rule instanceof cssSyntax.AtRule && rule.name=="media") {
-						
-						visit(rule.value);
-						
-					}
-					
-				}
-			}
-			
-			for(var s=cssCascade.stylesheets.length; s--; ) {
-				var rules = cssCascade.stylesheets[s];
-				visit(rules);
-			}
-			
-			return results;
+			return this.findAllMatchingRulesWithPseudo(element);
 		},
 		
 		//
 		// returns an array of the css rules matching a pseudo-element
 		//
 		findAllMatchingRulesWithPseudo: function findAllMatchingRules(element,pseudo) {
+			pseudo = pseudo ? (''+pseudo).toLowerCase() : pseudo;
 			
 			// let's look for new results if needed...
 			var results = [];
 			
 			// walk the whole stylesheet...
 			var visit = function(rules) {
-				for(var r = rules.length; r--; ) {
-					var rule = rules[r]; 
-					
-					// media queries hook
-					if(rule.disabled) continue;
-					
-					if(rule instanceof cssSyntax.StyleRule) {
+				try {
+					for(var r = rules.length; r--; ) {
+						var rule = rules[r]; 
 						
-						// consider each selector independently
-						var subrules = rule.subRules || cssCascade.splitRule(rule);
-						for(var sr = subrules.length; sr--; ) {
+						// media queries hook
+						if(rule.disabled) continue;
+						
+						if(rule instanceof cssSyntax.StyleRule) {
 							
-							// WE ONLY ACCEPT SELECTORS ENDING WITH THE PSEUDO
-							var selector = subrules[sr].selector.toCSSString().trim().replace(/\/\*\*\//,'');
-							var newLength = selector.length-pseudo.length-1;
-							if(newLength<=0) continue;
-							
-							if(selector.lastIndexOf('::'+pseudo)==newLength-1) {
-								selector = selector.substr(0,newLength-1);
-							} else if(selector.lastIndexOf(':'+pseudo)==newLength) {
-								selector = selector.substr(0,newLength);
-							} else {
-								continue;
+							// consider each selector independently
+							var subrules = rule.subRules || cssCascade.splitRule(rule);
+							for(var sr = subrules.length; sr--; ) {
+								
+								var selector = subrules[sr].selector.toCSSString().replace(/ *(\/\*\*\/|  ) */g,' ').trim();
+								if(pseudo) {
+									// WE ONLY ACCEPT SELECTORS ENDING WITH THE PSEUDO
+									var selectorLow = selector.toLowerCase();
+									var newLength = selector.length-pseudo.length-1;
+									if(newLength<=0) continue;
+									
+									if(selectorLow.lastIndexOf('::'+pseudo)==newLength-1) {
+										selector = selector.substr(0,newLength-1);
+									} else if(selectorLow.lastIndexOf(':'+pseudo)==newLength) {
+										selector = selector.substr(0,newLength);
+									} else {
+										continue;
+									}
+									
+									// fix selectors like "#element > :first-child ~ ::before"
+									if(selector.trim().length == 0) { selector = '*' }
+									else if(selector[selector.length-1] == ' ') { selector += '*' }
+									else if(selector[selector.length-1] == '+') { selector += '*' }
+									else if(selector[selector.length-1] == '>') { selector += '*' }
+									else if(selector[selector.length-1] == '~') { selector += '*' }
+									
+								}
+								
+								// look if the selector matches
+								var isMatching = false;
+								try {
+									if(element.matches) isMatching=element.matches(selector)
+									else if(element.matchesSelector) isMatching=element.matchesSelector(selector)
+									else if(element.oMatchesSelector) isMatching=element.oMatchesSelector(selector)
+									else if(element.msMatchesSelector) isMatching=element.msMatchesSelector(selector)
+									else if(element.mozMatchesSelector) isMatching=element.mozMatchesSelector(selector)
+									else if(element.webkitMatchesSelector) isMatching=element.webkitMatchesSelector(selector)
+									else { throw new Error("no element.matches?") }
+								} catch(ex) { debugger; setImmediate(function() { throw ex; }) }
+								
+								// if yes, add it to the list of matched selectors
+								if(isMatching) { results.push(subrules[sr]); }
+								
 							}
 							
-							// look if the selector matches
-							var isMatching = false;
-							try {
-								if(element.matches) isMatching=element.matches(selector)
-								else if(element.matchesSelector) isMatching=element.matchesSelector(selector)
-								else if(element.oMatchesSelector) isMatching=element.oMatchesSelector(selector)
-								else if(element.msMatchesSelector) isMatching=element.msMatchesSelector(selector)
-								else if(element.mozMatchesSelector) isMatching=element.mozMatchesSelector(selector)
-								else if(element.webkitMatchesSelector) isMatching=element.webkitMatchesSelector(selector)
-								else { throw new Error("wft u no element.matchesSelector?") }
-							} catch(ex) { debugger; setImmediate(function() { throw ex; }) }
+						} else if(rule instanceof cssSyntax.AtRule && rule.name=="media") {
 							
-							if(isMatching) { results.push(subrules[sr]); }
+							// extract rules out of the media block
+							var nestedContent = rule.value;
+							if(!(nestedContent instanceof cssSyntax.SimpleBlock)) { continue; }
+							
+							// visit them
+							visit(nestedContent.value);
 							
 						}
 						
-					} else if(rule instanceof cssSyntax.AtRule && rule.name=="media") {
-						
-						visit(rule.value);
-						
 					}
-					
+				} catch (ex) {
+					setImmediate(function() { throw ex; });
 				}
 			}
 			
@@ -292,6 +266,7 @@ module.exports = (function(window, document) { "use strict";
 			"word-wrap"             : true,
 			__proto__               : null,
 		},
+		
 		//
 		// returns the default style for a tag
 		//
@@ -365,7 +340,7 @@ module.exports = (function(window, document) { "use strict";
 						
 						// find a relevant declaration
 						if(rules[i] instanceof cssSyntax.StyleRule) {
-							var decls = rules[i].value;
+							var decls = rules[i].getDeclarations();
 							for(var j=decls.length-1; j>=0; j--) {
 								if(decls[j].type=="DECLARATION") {
 									if(decls[j].name==cssPropertyName) {
@@ -381,7 +356,7 @@ module.exports = (function(window, document) { "use strict";
 												}
 											}
 										} else {
-											// an important declaration beat any non-important declaration
+											// an important declaration beats any non-important declaration
 											if(decls[j].important) {
 												isBestImportant = true;
 												bestPriority = currentPriority;
@@ -399,7 +374,12 @@ module.exports = (function(window, document) { "use strict";
 							}
 						} else if((rules[i] instanceof cssSyntax.AtRule) && (rules[i].name=="media")) {
 							
-							visit(rules[i].value);
+							// extract rules out of the media block
+							var nestedContent = rule.value;
+							if(!(nestedContent instanceof cssSyntax.SimpleBlock)) { continue; }
+							
+							// visit them
+							visit(nestedContent.value);
 							
 						}
 						
@@ -522,7 +502,7 @@ module.exports = (function(window, document) { "use strict";
 				
 				// we need to find all regexps that matches
 				var mps = cssCascade.monitoredProperties;
-				var decls = rule.value;
+				var decls = rule.getDeclarations();
 				for(var j=decls.length-1; j>=0; j--) {
 					if(decls[j].type=="DECLARATION") {
 						if(decls[j].name in mps) {
@@ -579,7 +559,7 @@ module.exports = (function(window, document) { "use strict";
 					if(rules[i].isMonitored) continue;
 					
 					// for that, let's see if we can find a declaration we should watch
-					var decls = rules[i].value;
+					var decls = rules[i].getDeclarations();
 					for(var j=decls.length-1; j>=0; j--) {
 						if(decls[j].type=="DECLARATION") {
 							if(decls[j].name in cssCascade.monitoredProperties) {
@@ -616,7 +596,7 @@ module.exports = (function(window, document) { "use strict";
 				var media = window.matchMedia(atrule.prelude.toCSSString());
 				
 				// update all the rules when needed
-				cssCascade.updateMedia(atrule.value, !media.matches, false);
+				cssCascade.updateMedia(atrule.getDeclarations(), !media.matches, false);
 				media.addListener(
 					function(newMedia) { cssCascade.updateMedia(atrule.value, !newMedia.matches, true); }
 				);
@@ -787,6 +767,7 @@ module.exports = (function(window, document) { "use strict";
 				Object.defineProperty(styleProto,cssPropertyName,prop);
 				Object.defineProperty(styleProto,cssCascade.toCamelCase(cssPropertyName),prop);
 			}
+			cssCascade.startMonitoringRule(cssSyntax.parse('[style*="'+cssPropertyName+'"]{'+cssPropertyName+':attr(style)}').value[0]);
 			cssCascade.startMonitoringRule(cssSyntax.parse('[data-style-'+cssPropertyName+']{'+cssPropertyName+':attr(style)}').value[0]);
 			
 			// add to the list of polyfilled properties...
