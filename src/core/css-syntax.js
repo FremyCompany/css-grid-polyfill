@@ -997,7 +997,7 @@ function consumeAStyleRule(s) {
 			rule.value = consumeASimpleBlock(s);
 			return rule;
 		} else if(s.token instanceof SimpleBlock && s.token.name == "{") {
-			rule.value = token;
+			rule.value = s.token;
 			return rule;
 		} else {
 			s.reconsume();
@@ -1217,6 +1217,9 @@ AtRule.prototype.toCSSString = function() {
 	} else {
 		return "@" + escapeIdent(this.name) + " " + this.prelude.toCSSString() + '; '; 
 	}
+}
+AtRule.prototype.getStylesheet = function() {
+	return this.asStylesheet || (this.asStylesheet = this.value ? parseAStylesheet(this.value.value) : new Stylesheet());
 }
 
 function StyleRule() {

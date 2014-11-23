@@ -4,6 +4,7 @@ module.exports = (function(window, document) { "use strict";
 	
 	// import dependencies
 	require('polyfill-dom-console');
+	require('polyfill-dom-requestAnimationFrame');
 	var cssSyntax = require('css-syntax');
 	var domEvents = require('dom-events');
 	var querySelectorLive = require('dom-query-selector-live');
@@ -145,12 +146,8 @@ module.exports = (function(window, document) { "use strict";
 							
 						} else if(rule instanceof cssSyntax.AtRule && rule.name=="media") {
 							
-							// extract rules out of the media block
-							var nestedContent = rule.value;
-							if(!(nestedContent instanceof cssSyntax.SimpleBlock)) { continue; }
-							
-							// visit them
-							visit(nestedContent.value);
+							// visit the nested rules
+							visit(rules[i].getStylesheet().value);							
 							
 						}
 						
@@ -374,12 +371,8 @@ module.exports = (function(window, document) { "use strict";
 							}
 						} else if((rules[i] instanceof cssSyntax.AtRule) && (rules[i].name=="media")) {
 							
-							// extract rules out of the media block
-							var nestedContent = rule.value;
-							if(!(nestedContent instanceof cssSyntax.SimpleBlock)) { continue; }
-							
-							// visit them
-							visit(nestedContent.value);
+							// visit the nested rules
+							visit(rules[i].getStylesheet().value);
 							
 						}
 						
@@ -596,13 +589,14 @@ module.exports = (function(window, document) { "use strict";
 				var media = window.matchMedia(atrule.prelude.toCSSString());
 				
 				// update all the rules when needed
-				cssCascade.updateMedia(atrule.getDeclarations(), !media.matches, false);
+				var rules = atrule.getStylesheet().value;
+				cssCascade.updateMedia(rules, !media.matches, false);
 				media.addListener(
-					function(newMedia) { cssCascade.updateMedia(atrule.value, !newMedia.matches, true); }
+					function(newMedia) { cssCascade.updateMedia(rules, !newMedia.matches, true); }
 				);
 				
 				// it seems I like taking risks...
-				cssCascade.startMonitoringStylesheet(atrule.value);
+				cssCascade.startMonitoringStylesheet(rules);
 				
 			} catch(ex) {
 				setImmediate(function() { throw ex; })
