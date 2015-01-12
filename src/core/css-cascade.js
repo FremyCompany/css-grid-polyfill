@@ -588,7 +588,7 @@ module.exports = (function(window, document) { "use strict";
 				var media = window.matchMedia(atrule.prelude.toCSSString());
 				
 				// update all the rules when needed
-				var rules = atrule.getStylesheet().value;
+				var rules = atrule.toStylesheet().value;
 				cssCascade.updateMedia(rules, !media.matches, false);
 				media.addListener(
 					function(newMedia) { cssCascade.updateMedia(rules, !newMedia.matches, true); }

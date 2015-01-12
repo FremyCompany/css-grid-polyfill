@@ -1,4 +1,4 @@
-/*! CSS-POLYFILLS - v0.1.0 - 2014-11-23 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2014 François REMY; MIT-Licensed !*/
+/*! CSS-POLYFILLS - v0.1.0 - 2015-01-12 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2015 François REMY; MIT-Licensed !*/
 
 !(function() { 'use strict';
     var module = { exports:{} };
@@ -616,7 +616,7 @@ function tokenize(str) {
 	};
 
 	var consumeANumber = function() {
-		var repr = [];
+		var repr = '';
 		var type = "integer";
 		if(next() == 0x2b || next() == 0x2d) {
 			consume();
@@ -734,6 +734,10 @@ function SemicolonToken() { return this; }
 SemicolonToken.prototype = new CSSParserToken;
 SemicolonToken.prototype.tokenType = ";";
 
+function CommaToken() { return this; }
+CommaToken.prototype = new CSSParserToken;
+CommaToken.prototype.tokenType = ",";
+
 function GroupingToken() { return this; }
 GroupingToken.prototype = new CSSParserToken;
 
@@ -800,10 +804,6 @@ DelimToken.prototype.toString = function() { return "DELIM("+this.value+")"; }
 DelimToken.prototype.toCSSString = function() {
 	return (this.value == "\\") ? "\\\n" : this.value;
 }
-
-function CommaToken() { return this; }
-CommaToken.prototype = new DelimToken;
-CommaToken.prototype.tokenType = ",";
 
 function StringValuedToken() { return this; }
 StringValuedToken.prototype = new CSSParserToken;
@@ -1007,6 +1007,7 @@ function escapeString(string) {
 
 // Exportation.
 cssSyntax.tokenize = tokenize;
+cssSyntax.IdentToken = IdentifierToken;
 cssSyntax.IdentifierToken = IdentifierToken;
 cssSyntax.FunctionToken = FunctionToken;
 cssSyntax.AtKeywordToken = AtKeywordToken;
@@ -1290,7 +1291,7 @@ function parseAComponentValue(s) {
 
 function parseAListOfComponentValues(s) {
 	s = normalizeInput(s);
-	var vals = [];
+	var vals = new TokenList();
 	while(true) {
 		var val = consumeAComponentValue(s);
 		if(val instanceof EOFToken)
@@ -1302,9 +1303,9 @@ function parseAListOfComponentValues(s) {
 
 function parseACommaSeparatedListOfComponentValues(s) {
 	s = normalizeInput(s);
-	var listOfCVLs = [];
+	var listOfCVLs = new TokenList();
 	while(true) {
-		var vals = [];
+		var vals = new TokenList();
 		while(true) {
 			var val = consumeAComponentValue(s);
 			if(val instanceof EOFToken) {
@@ -1347,7 +1348,7 @@ AtRule.prototype.toCSSString = function() {
 		return "@" + escapeIdent(this.name) + " " + this.prelude.toCSSString() + '; '; 
 	}
 }
-AtRule.prototype.getStylesheet = function() {
+AtRule.prototype.toStylesheet = function() {
 	return this.asStylesheet || (this.asStylesheet = this.value ? parseAStylesheet(this.value.value) : new Stylesheet());
 }
 
@@ -1416,10 +1417,10 @@ Func.prototype.toCSSString = function() {
 	return this.name+'('+this.value.toCSSString()+')';
 }
 Func.prototype.getArguments = function() {
-	var args = []; var arg = []; var value = this.value;
+	var args = new TokenList(); var arg = new TokenList(); var value = this.value;
 	for(var i = 0; i<value.length; i++) {
 		if(value[i].value == ',') {
-			args.push(arg); arg = [];
+			args.push(arg); arg = new TokenList();
 		} else {
 			arg.push(value[i])
 		}
@@ -2395,8 +2396,8 @@ module.exports = (function(window, document) { "use strict";
 							
 						} else if(rule instanceof cssSyntax.AtRule && rule.name=="media") {
 							
-							// visit the nested rules
-							visit(rules[i].getStylesheet().value);							
+							// visit them
+							visit(nestedContent.toStylesheet().value);
 							
 						}
 						
@@ -2537,9 +2538,8 @@ module.exports = (function(window, document) { "use strict";
 		// returns the specified style of an element. 
 		// REMARK: may or may not unwrap "inherit" and "initial" depending on implementation
 		// REMARK: giving "matchedRules" as a parameter allow you to mutualize the "findAllMatching" rules calls
-		// REMARK: giving "stringOnly" as a "true" parameter allows to return a fake token list which returns the good string value
 		// 
-		getSpecifiedStyle: function getSpecifiedStyle(element, cssPropertyName, matchedRules, stringOnly) {
+		getSpecifiedStyle: function getSpecifiedStyle(element, cssPropertyName, matchedRules) {
 			
 			// hook for css regions
 			var fragmentSource;
@@ -2555,7 +2555,7 @@ module.exports = (function(window, document) { "use strict";
 				var bestValue = element.myStyle[cssPropertyName] || element.currentStyle[cssPropertyName];
 				
 				// return a parsed representation of the value
-				return cssSyntax.parseCSSValue(bestValue, stringOnly);
+				return bestValue;
 				
 			} else {
 				
@@ -2565,7 +2565,7 @@ module.exports = (function(window, document) { "use strict";
 				// TODO: what if important rules override that?
 				try {
 					if(bestValue = element.style.getPropertyValue(cssPropertyName) || element.myStyle[cssPropertyName]) {
-						return cssSyntax.parseCSSValue(bestValue, stringOnly);
+						return bestValue;
 					}
 				} catch(ex) {}
 				
@@ -2620,8 +2620,8 @@ module.exports = (function(window, document) { "use strict";
 							}
 						} else if((rules[i] instanceof cssSyntax.AtRule) && (rules[i].name=="media")) {
 							
-							// visit the nested rules
-							visit(rules[i].getStylesheet().value);
+							// visit them
+							visit(rules[i].toStylesheet())
 							
 						}
 						
@@ -2631,7 +2631,7 @@ module.exports = (function(window, document) { "use strict";
 				visit(rules);
 				
 				// return our best guess...
-				return bestValue;
+				return bestValue ? bestValue.toCSSString() : '';
 				
 			}
 			
@@ -2838,7 +2838,7 @@ module.exports = (function(window, document) { "use strict";
 				var media = window.matchMedia(atrule.prelude.toCSSString());
 				
 				// update all the rules when needed
-				var rules = atrule.getStylesheet().value;
+				var rules = atrule.toStylesheet().value;
 				cssCascade.updateMedia(rules, !media.matches, false);
 				media.addListener(
 					function(newMedia) { cssCascade.updateMedia(rules, !newMedia.matches, true); }
