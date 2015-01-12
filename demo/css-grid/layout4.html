@@ -1,0 +1,157 @@
+<!DOCTYPE HTML>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+		<title>Layout 4</title>
+		<style>
+		body {
+	margin: 0;
+	padding: 20px;
+	background-color: #999;
+	color: #fff;
+	font: 87.5%/1.4 HelveticaNeue, "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: "Georgia","Times New Roman",serif;
+    font-weight: normal;
+    padding: 0;
+    margin: 0;
+}
+
+h1 {
+    font-size: 328.571%;
+    margin-bottom: 0.2em;
+}
+
+h1.title {
+	text-align: center;
+	text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+}
+
+h2 {
+    font-size: 250%;
+    margin-bottom: 0.2em;
+}
+
+h3 {
+    font-size: 150%;
+    margin-bottom: 0.2em;
+}
+
+p {
+	margin:0;
+	padding: 0 0 1em 0;
+}
+
+.box {
+    background-color: #ddd;
+    padding: 10px 10px 1px;
+    color: #444;
+}
+
+
+.wrapper {	 
+  width: 90%;
+  margin: 0 auto 0 auto;
+  display:grid;
+  grid-template-columns:  (gutter) 1fr repeat(16, (col) 4.25fr (gutter) 1fr );
+  grid-template-rows: repeat(9, (row) auto (gutter) 20px );
+}
+
+
+/* this is an example of positioning items on the grid
+first row, single column items */
+.grid1 { grid-column: col / span 1; grid-row: row / span 1;} 
+.grid2 { grid-column: col 2 / span 1; grid-row: row / span 1;} 
+.grid3 { grid-column: col 3 / span 1; grid-row: row / span 1;}
+.grid4 { grid-column: col 4 / span 1; grid-row: row / span 1;} 
+.grid5 { grid-column: col 5 / span 1; grid-row: row / span 1;}
+.grid6 { grid-column: col 6 / span 1; grid-row: row / span 1;}
+.grid7 { grid-column: col 7 / span 1; grid-row: row / span 1;}
+.grid8 { grid-column: col 8 / span 1; grid-row: row / span 1;}
+.grid9 { grid-column: col 9 / span 1; grid-row: row / span 1;}
+.grid10 { grid-column: col 10 / span 1; grid-row: row / span 1;}
+.grid11 { grid-column: col 11 / span 1; grid-row: row / span 1;}
+.grid12 { grid-column: col 12 / span 1; grid-row: row / span 1;}
+.grid13 { grid-column: col 13 / span 1; grid-row: row / span 1;}
+.grid14 { grid-column: col 14 / span 1; grid-row: row / span 1;}
+.grid15 { grid-column: col 15 / span 1; grid-row: row / span 1;}
+.grid16 { grid-column: col 16 / span 1; grid-row: row / span 1;}
+
+/* second row items span 2 columns and one gutter */
+.grid17 { grid-column: col / span gutter 2; grid-row: row 2 / span 1; }
+.grid18 { grid-column: col 3 / span gutter 2; grid-row: row 2 / span 1; }
+.grid19 { grid-column: col 5 / span gutter 2; grid-row: row 2 / span 1; }
+.grid20 { grid-column: col 7 / span gutter 2; grid-row: row 2 / span 1; }
+.grid21 { grid-column: col 9 / span gutter 2; grid-row: row 2 / span 1; }
+.grid22 { grid-column: col 11 / span gutter 2; grid-row: row 2 / span 1; }
+.grid23 { grid-column: col 13 / span gutter 2; grid-row: row 2 / span 1; }
+.grid24 { grid-column: col 15 / span gutter 2; grid-row: row 2 / span 1; }
+
+/*
+ third row we have 4 items spanning 3 cols and 1 spanning 4 */
+.grid25 { grid-column: col / span gutter 3; grid-row: row 3 / span 1; }
+.grid26 { grid-column: col 4 / span gutter 3; grid-row: row 3 / span 1; }
+.grid27 { grid-column: col 7 / span gutter 3; grid-row: row 3 / span 1; }
+.grid28 { grid-column: col 10 / span gutter 3; grid-row: row 3 / span 1;}
+.grid29 { grid-column: col 13 / span gutter 4; grid-row: row 3 / span 1; }
+
+/* fourth row 4 items spanning 4 columns each */
+.grid30 { grid-column: col / span gutter 4; grid-row: row 4 / span 1; }
+.grid31 { grid-column: col 5 / span gutter 4; grid-row: row 4 / span 1;}
+.grid32 { grid-column: col 9 / span gutter 4; grid-row: row 4 / span 1; }
+.grid33 { grid-column: col 13 / span gutter 4; grid-row: row 4 / span 1; }
+
+
+		</style>
+      </head>
+	<body>
+	<h1 class="title">Flexible Grid</h1>
+	
+	<div class="wrapper">
+		<div class="box grid1">01</div>
+		<div class="box grid2">02</div>
+		<div class="box grid3">03</div>
+		<div class="box grid4">04</div>
+		<div class="box grid5">05</div>
+		<div class="box grid6">06</div>
+		<div class="box grid7">07</div>
+		<div class="box grid8">08</div>
+		<div class="box grid9">09</div>
+		<div class="box grid10">10</div>
+		<div class="box grid11">11</div>
+		<div class="box grid12">12</div>
+		<div class="box grid13">13</div>
+		<div class="box grid14">14</div>
+		<div class="box grid15">15</div>
+		<div class="box grid16">16</div>
+
+		<div class="box grid17">17</div>
+		<div class="box grid18">18</div>
+		<div class="box grid19">19</div>
+		<div class="box grid20">20</div>
+		<div class="box grid21">21</div>
+		<div class="box grid22">22</div>
+		<div class="box grid23">23</div>
+		<div class="box grid24">24</div>	
+
+		<div class="box grid25">25</div>
+		<div class="box grid26">26</div>
+		<div class="box grid27">27</div>
+		<div class="box grid28">28</div>
+		<div class="box grid29">29</div>
+
+
+		<div class="box grid30">30</div>
+		<div class="box grid31">31</div>
+		<div class="box grid32">32</div>
+		<div class="box grid33">33</div>
+
+		
+	</div>
+	<script src="../../bin/css-polyfills.min.js"></script>
+	</body>
+</html>

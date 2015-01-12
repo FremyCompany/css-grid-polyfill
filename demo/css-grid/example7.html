@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Example 7</title>
+    <meta charset="utf-8">
+    <style>
+	body {
+		margin: 40px;
+	}
+	.wrapper {
+		display: grid;
+		grid-template-columns: (col1-start) 100px (col1-end) 10px (col2-start) 100px (col2-end) 10px (col3-start) 100px (col3-end);
+		grid-template-rows: (row1-start) auto (row1-end) 10px (row2-start) auto (row2-end);
+		background-color: #fff;
+		color: #444;
+	}
+
+	.box {
+		background-color: #444;
+		color: #fff;
+		border-radius: 5px;
+		padding: 20px;
+		font-size: 150%;
+
+	}
+
+	.a { 
+		grid-column: col1-start / col2-end; 
+		grid-row: row1-start ;
+	}
+	.b { 
+		grid-column: col3-start ; 
+		grid-row: row1-start / row2-end;
+	}
+	.c { 
+		grid-column: col1-start; 
+		grid-row: row2-start ;
+	}
+	.d { 
+		grid-column: col2-start ; 
+		grid-row: row2-start ;
+	}
+
+
+
+   </style>
+</head>
+
+ <body>
+  	
+	 <div class="wrapper">
+		<div class="box a">A</div>
+		<div class="box b">B</div>
+		<div class="box c">C</div>
+		<div class="box d">D</div>
+	</div>
+	<script src="../../bin/css-polyfills.min.js"></script>
+</body>
+</html>

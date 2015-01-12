@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Example 11</title>
+    <meta charset="utf-8">
+    <style>
+	body {
+		margin: 40px;
+	}
+
+	.sidebar {
+		grid-area: sidebar;
+	}
+
+	.content {
+		grid-area: content;
+	}
+
+	.header {
+		grid-area: header;
+	}
+
+
+	.wrapper {
+		display: grid;
+		grid-template-columns: 125px 10px 125px 10px 125px;
+		grid-template-rows: auto;
+		grid-template-areas: 
+			"header  header header  header  header " 
+			"sidebar .      content content content";
+		background-color: #fff;
+		color: #444;
+	}
+
+	.box {
+		background-color: #444;
+		color: #fff;
+		border-radius: 5px;
+		padding: 20px;
+		font-size: 150%;
+
+	}
+
+	.header {
+		background-color: #999;
+	}
+
+
+
+   </style>
+</head>
+
+ <body>
+  	
+	 <div class="wrapper">
+	 	<div class="box header">Header</div>
+		<div class="box sidebar">Sidebar</div>
+		<div class="box content">Content</div>
+	</div>
+	<script src="../../bin/css-polyfills.js"></script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Example 13</title>
+    <meta charset="utf-8">
+    <style>
+	body {
+		margin: 40px;
+	}
+
+	.sidebar {
+		grid-area: sidebar;
+	}
+
+	.sidebar2 {
+		grid-area: sidebar2;
+	}
+
+	.content {
+		grid-area: content;
+	}
+
+	.header {
+		grid-area: header;
+	}
+
+	.footer {
+		grid-area: footer;
+	}
+
+	.wrapper {
+		display: grid;
+		grid-template-areas: "header" "sidebar" "sidebar2" "content" "footer";
+		background-color: #fff;
+		color: #444;
+	}
+
+	@media only screen and (min-width: 400px) and (max-width: 589px)  {
+	.wrapper {
+		grid-template-columns: 20% 5% auto;
+		grid-template-rows: auto;
+		grid-template-areas: "header header header" 
+		"sidebar . content"
+		"sidebar2 sidebar2 sidebar2"
+		"footer footer footer";
+	}
+	}
+
+	@media only screen and (min-width: 590px)   {
+		.wrapper {
+			grid-template-columns: 125px 20px auto 20px 125px;
+			grid-template-rows: auto;
+			grid-template-areas: 
+				"header header header header header" 
+				"sidebar . content . sidebar2"
+				"footer footer footer footer footer";
+			max-width: 600px;
+		}
+	}
+
+	.box {
+		background-color: #444;
+		color: #fff;
+		border-radius: 5px;
+		padding: 20px;
+		font-size: 150%;
+
+	}
+
+	.header, .footer {
+		background-color: #999;
+	}
+
+	.sidebar2 {
+		background-color: #ccc;
+		color: #444;
+	}
+
+
+
+   </style>
+</head>
+
+ <body>
+  	
+	 <div class="wrapper">
+	 	<div class="box header">Header</div>
+		<div class="box sidebar">Sidebar</div>
+		<div class="box sidebar2">Sidebar 2</div>
+		<div class="box content">Content
+			<br /> More content than we had before so this column is now quite tall.</div>
+		<div class="box footer">Footer</div>
+	</div>
+	<script src="../../bin/css-polyfills.min.js"></script>
+</body>
+</html>

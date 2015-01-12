@@ -19,7 +19,7 @@ var cssSyntax = {
 // Add support for token lists (superclass of array)
 function TokenList() {
 	var array = []; 
-	array.toCSSString=cssSyntax.TokenListToCSSString;
+	array.toCSSString=TokenListToCSSString;
 	return array;
 }
 function TokenListToCSSString(sep) {
