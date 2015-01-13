@@ -1,7 +1,6 @@
 module.exports = (function(window, document) { "use strict";
 	
 	// import dependencies
-	
 	var cssSyntax = require('core:css-syntax');
 	
 	var cssStyle  = require('core:css-style'),
@@ -477,7 +476,7 @@ module.exports = (function(window, document) { "use strict";
 						specifiedEnd.type = LOCATE_AUTO;
 						specifiedEnd.name = undefined;
 						specifiedEnd.index = undefined;
-						break;
+						I++; break;
 						
 					} else {
 					

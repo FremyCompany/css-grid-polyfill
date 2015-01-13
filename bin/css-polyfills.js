@@ -1,4 +1,4 @@
-/*! CSS-POLYFILLS - v0.1.0 - 2015-01-12 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2015 François REMY; MIT-Licensed !*/
+/*! CSS-POLYFILLS - v0.1.0 - 2015-01-13 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2015 François REMY; MIT-Licensed !*/
 
 !(function() { 'use strict';
     var module = { exports:{} };
@@ -2555,7 +2555,7 @@ module.exports = (function(window, document) { "use strict";
 				var bestValue = element.myStyle[cssPropertyName] || element.currentStyle[cssPropertyName];
 				
 				// return a parsed representation of the value
-				return bestValue;
+				return cssSyntax.parse(bestValue);
 				
 			} else {
 				
@@ -2565,7 +2565,7 @@ module.exports = (function(window, document) { "use strict";
 				// TODO: what if important rules override that?
 				try {
 					if(bestValue = element.style.getPropertyValue(cssPropertyName) || element.myStyle[cssPropertyName]) {
-						return bestValue;
+						return cssSyntax.parse(bestValue);
 					}
 				} catch(ex) {}
 				
@@ -2631,7 +2631,7 @@ module.exports = (function(window, document) { "use strict";
 				visit(rules);
 				
 				// return our best guess...
-				return bestValue ? bestValue.toCSSString() : '';
+				return bestValue||null;
 				
 			}
 			
@@ -3585,7 +3585,6 @@ require.define('src/core/css-units.js');
 module.exports = (function(window, document) { "use strict";
 	
 	// import dependencies
-	
 	var cssSyntax = require('src/core/css-syntax.js');
 	
 	var cssStyle  = require('src/core/css-style.js'),
@@ -4061,7 +4060,7 @@ module.exports = (function(window, document) { "use strict";
 						specifiedEnd.type = LOCATE_AUTO;
 						specifiedEnd.name = undefined;
 						specifiedEnd.index = undefined;
-						break;
+						I++; break;
 						
 					} else {
 					
@@ -6377,6 +6376,8 @@ require.define('src/css-grid/lib/grid-layout.js');
 // TOOD: document the "no_ms_grid_implementation" flag?
 
 !(function(window, document) { "use strict";
+
+	if("gridRow" in document.body.style) { console.warn('Polyfill skipped'); return; }
 
 	require('src/core/polyfill-dom-console.js');
 	var cssCascade = require('src/core/css-cascade.js');

@@ -3,6 +3,8 @@
 
 !(function(window, document) { "use strict";
 
+	if("gridRow" in document.body.style) { console.warn('Polyfill skipped'); return; }
+
 	require('core:polyfill-dom-console');
 	var cssCascade = require('core:css-cascade');
 	var cssGrid = require('lib/grid-layout');

@@ -305,7 +305,7 @@ module.exports = (function(window, document) { "use strict";
 				var bestValue = element.myStyle[cssPropertyName] || element.currentStyle[cssPropertyName];
 				
 				// return a parsed representation of the value
-				return bestValue;
+				return cssSyntax.parse(bestValue);
 				
 			} else {
 				
@@ -315,7 +315,7 @@ module.exports = (function(window, document) { "use strict";
 				// TODO: what if important rules override that?
 				try {
 					if(bestValue = element.style.getPropertyValue(cssPropertyName) || element.myStyle[cssPropertyName]) {
-						return bestValue;
+						return cssSyntax.parse(bestValue);
 					}
 				} catch(ex) {}
 				
@@ -381,7 +381,7 @@ module.exports = (function(window, document) { "use strict";
 				visit(rules);
 				
 				// return our best guess...
-				return bestValue ? bestValue.toCSSString() : '';
+				return bestValue||null;
 				
 			}
 			
