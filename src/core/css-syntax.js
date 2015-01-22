@@ -1290,7 +1290,7 @@ Func.prototype.toCSSString = function() {
 Func.prototype.getArguments = function() {
 	var args = new TokenList(); var arg = new TokenList(); var value = this.value;
 	for(var i = 0; i<value.length; i++) {
-		if(value[i].value == ',') {
+		if(value[i].tokenType == ',') {
 			args.push(arg); arg = new TokenList();
 		} else {
 			arg.push(value[i])
