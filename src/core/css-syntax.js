@@ -608,6 +608,7 @@ SemicolonToken.prototype.tokenType = ";";
 function CommaToken() { return this; }
 CommaToken.prototype = new CSSParserToken;
 CommaToken.prototype.tokenType = ",";
+CommaToken.prototype.value = ";"; // backwards-compat with DELIM token
 
 function GroupingToken() { return this; }
 GroupingToken.prototype = new CSSParserToken;
