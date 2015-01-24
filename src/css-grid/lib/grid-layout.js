@@ -518,11 +518,11 @@ module.exports = (function(window, document) { "use strict";
 				return;
 			}
 			
-			// If the <integer> is omitted, it defaults to ‘1’.
+			// If the <integer> is omitted, it defaults to Â‘1Â’.
 			//if(specifiedStart.name && specifiedStart.index == undefined) { specifiedStart.index = 1; }
 			//if(specifiedEnd.name && specifiedEnd.index == undefined) { specifiedEnd.index = 1; }
 			
-			// If both ‘grid-row/column-start’ and ‘grid-row/column-end’ specify a span, the end span is ignored. 
+			// If both Â‘grid-row/column-startÂ’ and Â‘grid-row/column-endÂ’ specify a span, the end span is ignored. 
 			if(specifiedEnd.type == LOCATE_SPAN && specifiedStart.type == LOCATE_SPAN) { specifiedEnd.type = LOCATE_AUTO; specifiedEnd.index = undefined; specifiedEnd.name = undefined; }
 			
 			return [specifiedStart, specifiedEnd];
@@ -1442,7 +1442,7 @@ module.exports = (function(window, document) { "use strict";
 
 			if(this.growY) {
 				
-				//For each grid item that hasn’t been positioned by the previous steps, in order-modified document order:
+				//For each grid item that hasnÂ’t been positioned by the previous steps, in order-modified document order:
 				for(var i=0; i<this.items.length; i++) {
 					var item = this.items[i]; if(item.xEnd!=-1 && item.yEnd!=-1) { continue; }
 					
@@ -1469,7 +1469,7 @@ module.exports = (function(window, document) { "use strict";
 							}
 						}
 
-						// 2. Increment the auto-placement cursor’s row position until a value is found where the grid item does not overlap any occupied grid cells (creating new rows in the implicit grid as necessary).
+						// 2. Increment the auto-placement cursorÂ’s row position until a value is found where the grid item does not overlap any occupied grid cells (creating new rows in the implicit grid as necessary).
 						IncrementalRowAttempts: while(true) {
 							
 							// make room for the currently attempted position
@@ -1528,13 +1528,13 @@ module.exports = (function(window, document) { "use strict";
 							}
 						}
 						
-						// Increment the auto-placement cursor’s row/column position (creating new rows in the implicit grid as necessary)
+						// Increment the auto-placement cursorÂ’s row/column position (creating new rows in the implicit grid as necessary)
 						var nextStep = function() {
 							cursor.x++; if(cursor.x+spanX>this.rcMatrix[0].length) { cursor.y++; this.ensureRows(cursor.y + spanY); cursor.x=0; }
 							return true;
 						}
 
-						// 1. Increment the column position of the auto-placement cursor until this item’s grid area does not overlap any occupied grid cells
+						// 1. Increment the column position of the auto-placement cursor until this itemÂ’s grid area does not overlap any occupied grid cells
 						IncrementalYXPositionAttempts: while(true) {
 							
 							// make room for the currently attempted position
@@ -1574,7 +1574,7 @@ module.exports = (function(window, document) { "use strict";
 				
 			} else {
 				
-				//For each grid item that hasn’t been positioned by the previous steps, in order-modified document order:
+				//For each grid item that hasnÂ’t been positioned by the previous steps, in order-modified document order:
 				for(var i=0; i<this.items.length; i++) {
 					var item = this.items[i]; if(item.xEnd!=-1 && item.yEnd!=-1) { continue; }
 					
@@ -1601,7 +1601,7 @@ module.exports = (function(window, document) { "use strict";
 							}
 						}
 
-						// 2. Increment the auto-placement cursor’s row position until a value is found where the grid item does not overlap any occupied grid cells (creating new rows in the implicit grid as necessary).
+						// 2. Increment the auto-placement cursorÂ’s row position until a value is found where the grid item does not overlap any occupied grid cells (creating new rows in the implicit grid as necessary).
 						IncrementalColumnAttempts: while(true) {
 							
 							// make room for the currently attempted position
@@ -1660,13 +1660,13 @@ module.exports = (function(window, document) { "use strict";
 							}
 						}
 						
-						// Increment the auto-placement cursor’s row/column position (creating new rows in the implicit grid as necessary)
+						// Increment the auto-placement cursorÂ’s row/column position (creating new rows in the implicit grid as necessary)
 						var nextStep = function() {
 							cursor.y++; if(cursor.y+spanY>this.rcMatrix[0].length) { cursor.x++; this.ensureRows(cursor.x + spanX); cursor.y=0; }
 							return true;
 						}
 
-						// 1. Increment the column position of the auto-placement cursor until this item’s grid area does not overlap any occupied grid cells
+						// 1. Increment the column position of the auto-placement cursor until this itemÂ’s grid area does not overlap any occupied grid cells
 						IncrementalXYPositionAttempts: while(true) {
 							
 							// make room for the currently attempted position
@@ -1759,7 +1759,7 @@ module.exports = (function(window, document) { "use strict";
 					case TRACK_BREADTH_LENGTH:      limit = v.minValue; break;
 					case TRACK_BREADTH_PERCENTAGE:  limit = v.minValue*fullSize/100; break;
 					
-					// For flexible track sizes, use the track’s initial base size as its initial growth limit.  
+					// For flexible track sizes, use the trackÂ’s initial base size as its initial growth limit.  
 					case TRACK_BREADTH_FRACTION:    limit = base; break;
 					
 					// For intrinsic track sizes, use an initial growth limit of infinity. 
@@ -1804,7 +1804,7 @@ module.exports = (function(window, document) { "use strict";
 					for(var t = tracks.length; t--;) { var cx = tracks[t].x;
 						// If the growth limit is infinite...
 						if(xSizes[cx].flags & LIMIT_IS_INFINITE) {
-							// set it to the track’s base size plus the calculated increase
+							// set it to the trackÂ’s base size plus the calculated increase
 							if(xSizes[cx].limit == infinity) {
 								xSizes[cx].limit = xSizes[cx].base + spacePerTrack;
 							} else {
@@ -1830,42 +1830,42 @@ module.exports = (function(window, document) { "use strict";
 				
 					var dontCountMaxItems = false;
 					
-					// If the track has a ‘min-content’ min track sizing function
+					// If the track has a Â‘min-contentÂ’ min track sizing function
 					if(specifiedSizes[x].minType == TRACK_BREADTH_MIN_CONTENT || specifiedSizes[x].minType == TRACK_BREADTH_AUTO) {
 						
 						// Consider the items in it with a span of 1: 
 						for(var i = this.items.length; i--;) { var item = this.items[i]; var item_xStart = getXStartOf(item); var item_xEnd = getXEndOf(item);
 							if(item_xStart>x || item_xEnd<=x || item_xEnd-item_xStart != 1) continue;
 							
-							// Set its base size to the maximum of the items’ min-content contributions. 
+							// Set its base size to the maximum of the itemsÂ’ min-content contributions. 
 							xSizes[x].base = Math.max(xSizes[x].base, getMinWidthOf(item)); items_done++; dontCountMaxItems=true;
 							
 						}
 						
 					}
 					
-					// If the track has a ‘max-content’ min track sizing function
+					// If the track has a Â‘max-contentÂ’ min track sizing function
 					else if(specifiedSizes[x].minType == TRACK_BREADTH_MAX_CONTENT) {
 						
 						// Consider the items in it with a span of 1: 
 						for(var i = this.items.length; i--;) { var item = this.items[i]; var item_xStart = getXStartOf(item); var item_xEnd = getXEndOf(item);
 							if(item_xStart>x || item_xEnd<=x || item_xEnd-item_xStart != 1) continue;
 							
-							// Set its base size to the maximum of the items’ max-content contributions. 
+							// Set its base size to the maximum of the itemsÂ’ max-content contributions. 
 							xSizes[x].base = Math.max(xSizes[x].base, getMaxWidthOf(item)); items_done++; dontCountMaxItems=true;
 							
 						}
 						
 					}
 					
-					// If the track has a ‘min-content’ max track sizing function
+					// If the track has a Â‘min-contentÂ’ max track sizing function
 					if(specifiedSizes[x].maxType == TRACK_BREADTH_MIN_CONTENT) {
 						
 						// Consider the items in it with a span of 1: 
 						for(var i = this.items.length; i--;) { var item = this.items[i]; var item_xStart = getXStartOf(item); var item_xEnd = getXEndOf(item);
 							if(item_xStart>x || item_xEnd<=x || item_xEnd-item_xStart != 1) continue;
 							
-							// Set its growth limit to the maximum of the items’ min-content contributions. 
+							// Set its growth limit to the maximum of the itemsÂ’ min-content contributions. 
 							if(xSizes[x].limit == infinity) { xSizes[x].limit = getMinWidthOf(item); }
 							else { xSizes[x].limit = Math.max(xSizes[x].limit, getMinWidthOf(item)); }
 							
@@ -1875,14 +1875,14 @@ module.exports = (function(window, document) { "use strict";
 						
 					} 
 					
-					// If the track has a ‘max-content’ max track sizing function
+					// If the track has a Â‘max-contentÂ’ max track sizing function
 					else if(specifiedSizes[x].maxType == TRACK_BREADTH_MAX_CONTENT || specifiedSizes[x].minType == TRACK_BREADTH_AUTO) {
 						
 						// Consider the items in it with a span of 1: 
 						for(var i = this.items.length; i--;) { var item = this.items[i]; var item_xStart = getXStartOf(item); var item_xEnd = getXEndOf(item);
 							if(item_xStart>x || item_xEnd<=x || item_xEnd-item_xStart != 1) continue;
 							
-							// Set its growth limit to the maximum of the items’ max-content contributions. 
+							// Set its growth limit to the maximum of the itemsÂ’ max-content contributions. 
 							if(xSizes[x].limit == infinity) { xSizes[x].limit = getMaxWidthOf(item); }
 							else { xSizes[x].limit = Math.max(xSizes[x].limit, getMaxWidthOf(item)); }
 							
@@ -1988,9 +1988,9 @@ module.exports = (function(window, document) { "use strict";
 									} else {
 										
 										// Distribute space beyond growth limits
-										// If space remains after all tracks are frozen, unfreeze and continue to distribute space to… 
+										// If space remains after all tracks are frozen, unfreeze and continue to distribute space toÂ… 
 										
-										// - when handling ‘min-content’ base sizes: 
+										// - when handling Â‘min-contentÂ’ base sizes: 
 										if(target=='min-content') {
 											
 											// any affected track that happens to also have an intrinsic max track sizing function; 
@@ -2009,10 +2009,10 @@ module.exports = (function(window, document) { "use strict";
 											
 										}
 										
-										// - when handling ‘max-content’ base sizes: 
+										// - when handling Â‘max-contentÂ’ base sizes: 
 										else if(target=='max-content') {
 											
-											// any affected track that happens to also have a ‘max-content’ max track sizing function;
+											// any affected track that happens to also have a Â‘max-contentÂ’ max track sizing function;
 											var tracks = rows_and_limits.filter(function(b) { return b.maxIsMaxContent; }, 0);
 											var trackAmount = tracks.length;
 											if(trackAmount>=1) {
@@ -2049,27 +2049,27 @@ module.exports = (function(window, document) { "use strict";
 						}
 						
 						//
-						// 1. For intrinsic minimums: First increase the base size of tracks with a min track sizing function of ‘min-content’ or ‘max-content’ by distributing extra space as needed to account for these items' min-content contributions. 
+						// 1. For intrinsic minimums: First increase the base size of tracks with a min track sizing function of Â‘min-contentÂ’ or Â‘max-contentÂ’ by distributing extra space as needed to account for these items' min-content contributions. 
 						//
 						distributeFreeSpace(getMinWidthOf(item), 'base', 'min-content');
 						updateInfiniteLimitFlag();
 						
 						
 						//
-						// 2. For max-content minimums: Next continue to increase the base size of tracks with a min track sizing function of ‘max-content’ by distributing extra space as needed to account for these items' max-content contributions. 
+						// 2. For max-content minimums: Next continue to increase the base size of tracks with a min track sizing function of Â‘max-contentÂ’ by distributing extra space as needed to account for these items' max-content contributions. 
 						//
 						distributeFreeSpace(getMaxWidthOf(item), 'base', 'max-content');
 						updateInfiniteLimitFlag();
 						
 						//
-						// 3. For intrinsic maximums: Third increase the growth limit of tracks with a max track sizing function of ‘min-content’ or ‘max-content’ by distributing extra space as needed to account for these items' min-content contributions. 
+						// 3. For intrinsic maximums: Third increase the growth limit of tracks with a max track sizing function of Â‘min-contentÂ’ or Â‘max-contentÂ’ by distributing extra space as needed to account for these items' min-content contributions. 
 						// Mark any tracks whose growth limit changed from infinite to finite in this step as infinitely growable for the next step. 
 						// (aka do not update infinity flag)
 						//
 						distributeFreeSpace(getMinWidthOf(item), 'limit', 'min-content');
 						
 						//
-						// 4. For max-content maximums: Lastly continue to increase the growth limit of tracks with a max track sizing function of ‘max-content’ by distributing extra space as needed to account for these items' max-content contributions. 
+						// 4. For max-content maximums: Lastly continue to increase the growth limit of tracks with a max track sizing function of Â‘max-contentÂ’ by distributing extra space as needed to account for these items' max-content contributions. 
 						//
 						distributeFreeSpace(getMaxWidthOf(item), 'limit', 'max-content');
 						updateInfiniteLimitFlag();
@@ -2124,10 +2124,10 @@ module.exports = (function(window, document) { "use strict";
 					//The used flex fraction is the maximum of: 
 					var currentFraction = 0;
 					
-					// • Each flexible track’s base size divided by its flex factor. 
+					// Â• Each flexible trackÂ’s base size divided by its flex factor. 
 					'TODO: I believe this is completely useless, but CSSWG will not change it.';
 					
-					// • The result of finding the size of an fr for each grid item that crosses a flexible track, using all the grid tracks that the item crosses and a space to fill of the item’s max-content contribution. 
+					// Â• The result of finding the size of an fr for each grid item that crosses a flexible track, using all the grid tracks that the item crosses and a space to fill of the itemÂ’s max-content contribution. 
 					for(var i = this.items.length; i--;) { var item = this.items[i]; var item_xStart = getXStartOf(item); var item_xEnd = getXEndOf(item);
 						
 						// gather some pieces of data about the tracks
@@ -2155,10 +2155,10 @@ module.exports = (function(window, document) { "use strict";
 					for(var x = xSizes.length; x--;) {
 						if(specifiedSizes[x].maxType == TRACK_BREADTH_FRACTION) {
 							
-							// Compute the product of the hypothetical flex fraction and the track’s flex factor
+							// Compute the product of the hypothetical flex fraction and the trackÂ’s flex factor
 							var trackSize = currentFraction * specifiedSizes[x].maxValue;
 							
-							// If that size is less than the track’s base size:
+							// If that size is less than the trackÂ’s base size:
 							if(xSizes[x].base < trackSize) {
 								
 								// set its base size to that product.
@@ -2199,10 +2199,10 @@ module.exports = (function(window, document) { "use strict";
 						// for each flexible track
 						for(var i = tracks.length; i--;) { var x = tracks[i];
 							
-							// Compute the product of the hypothetical flex fraction and the track’s flex factor
+							// Compute the product of the hypothetical flex fraction and the trackÂ’s flex factor
 							var trackSize = currentFraction * specifiedSizes[x].maxValue;
 							
-							// If that size is less than the track’s base size:
+							// If that size is less than the trackÂ’s base size:
 							if(xSizes[x].base < trackSize) {
 								
 								// set its base size to that product.
@@ -2511,13 +2511,13 @@ module.exports = (function(window, document) { "use strict";
 				
 				if(item.specifiedXStart.index === undefined) {
 					
-					// First attempts to match the grid area’s edge to a named grid area
+					// First attempts to match the grid areaÂ’s edge to a named grid area
 					xStart = this.findXLine(item.specifiedXStart.name+"-start", 0, 0, /*dontFallback*/true);
 					
 				}
 				if(xStart==-1) {
 				
-					// Otherwise, contributes the first named line with the specified name to the grid item’s placement. 
+					// Otherwise, contributes the first named line with the specified name to the grid itemÂ’s placement. 
 					xStart = this.findXLine(item.specifiedXStart.name, 0, (item.specifiedXStart.index||1)-1);
 					
 				}
@@ -2552,13 +2552,13 @@ module.exports = (function(window, document) { "use strict";
 				
 				if(item.specifiedYStart.index === undefined) {
 					
-					// First attempts to match the grid area’s edge to a named grid area
+					// First attempts to match the grid areaÂ’s edge to a named grid area
 					yStart = this.findYLine(item.specifiedYStart.name+"-start", 0, 0, /*dontFallback*/true);
 					
 				}
 				if(yStart == -1) {
 					
-					// Otherwise, contributes the first named line with the specified name to the grid item’s placement. 
+					// Otherwise, contributes the first named line with the specified name to the grid itemÂ’s placement. 
 					yStart = this.findYLine(item.specifiedYStart.name, 0,(item.specifiedYStart.index||1)-1);
 					
 				}
@@ -2590,13 +2590,13 @@ module.exports = (function(window, document) { "use strict";
 					if(item.specifiedXEnd.name) {
 						if(item.specifiedXEnd.index === undefined) {
 							
-							// First attempts to match the grid area’s edge to a named grid area
+							// First attempts to match the grid areaÂ’s edge to a named grid area
 							xEnd = this.findXLine(item.specifiedXEnd.name+"-end", 0, 0, /*dontFallback*/true);
 							
 						}
 						if(xEnd == -1) {
 							
-							// Otherwise, contributes the first named line with the specified name to the grid item’s placement. 
+							// Otherwise, contributes the first named line with the specified name to the grid itemÂ’s placement. 
 							xEnd = this.findXLine(item.specifiedXEnd.name, 0, (item.specifiedXEnd.index||1)-1);
 							
 						}
@@ -2643,13 +2643,13 @@ module.exports = (function(window, document) { "use strict";
 						// 
 						if(item.specifiedYEnd.index === undefined) {
 							
-							// First attempts to match the grid area’s edge to a named grid area
+							// First attempts to match the grid areaÂ’s edge to a named grid area
 							yEnd = this.findYLine(item.specifiedYEnd.name+"-end", 0, 0, /*dontFallback*/true);
 							
 						}
 						if(yEnd == -1) {
 							
-							// Otherwise, contributes the first named line with the specified name to the grid item’s placement. 
+							// Otherwise, contributes the first named line with the specified name to the grid itemÂ’s placement. 
 							yEnd = this.findYLine(item.specifiedYEnd.name, 0, (item.specifiedYEnd.index||1)-1);
 							
 						}
