@@ -742,13 +742,13 @@ module.exports = (function(window, document) { "use strict";
 				}
 				
 				// here's the first one:
-				value = args[0].value.filter(function(t) { return !(t instanceof cssSyntax.WhitespaceToken) }); I = 0;				
+				value = args[0].filter(function(t) { return !(t instanceof cssSyntax.WhitespaceToken) }); I = 0;				
 				var data = parseTrackBreadthToken.call(this);
 				currentTrackBreadth.minType = data.type;
 				currentTrackBreadth.minValue = data.value;
 				
 				// here's the second one:
-				value = args[1].value.filter(function(t) { return !(t instanceof cssSyntax.WhitespaceToken) }); I = 0;				
+				value = args[1].filter(function(t) { return !(t instanceof cssSyntax.WhitespaceToken) }); I = 0;				
 				var data = parseTrackBreadthToken.call(this);
 				currentTrackBreadth.maxType  = data.type;
 				currentTrackBreadth.maxValue = data.value;
