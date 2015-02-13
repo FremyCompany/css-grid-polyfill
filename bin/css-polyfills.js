@@ -1,4 +1,4 @@
-/*! CSS-POLYFILLS - v0.1.0 - 2015-01-24 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2015 François REMY; MIT-Licensed !*/
+/*! CSS-POLYFILLS - v0.1.0 - 2015-02-13 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2015 François REMY; MIT-Licensed !*/
 
 !(function() { 'use strict';
     var module = { exports:{} };
@@ -4276,7 +4276,7 @@ module.exports = (function(window, document) { "use strict";
 			} else if(cssToken instanceof cssSyntax.DimensionToken) {
 				
 				if(cssToken.unit == "fr") {
-					return { type: TRACK_BREADTH_FRACTION, value:cssToken.num };
+					return { type: TRACK_BREADTH_FRACTION, value:cssToken.value };
 				} else {
 					return { type: TRACK_BREADTH_LENGTH, value:cssUnits.convertToPixels(cssToken.toCSSString(), this.element) };
 				}
@@ -5574,7 +5574,8 @@ module.exports = (function(window, document) { "use strict";
 									} else {
 										
 										// Distribute space beyond growth limits
-										// If space remains after all tracks are frozen, unfreeze and continue to distribute space to 
+										// If space remains after all tracks are frozen, unfreeze and continue to distribute space to
+ 
 										
 										// - when handling min-content base sizes: 
 										if(target=='min-content') {
