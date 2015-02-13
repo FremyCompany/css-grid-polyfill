@@ -690,7 +690,7 @@ module.exports = (function(window, document) { "use strict";
 			} else if(cssToken instanceof cssSyntax.DimensionToken) {
 				
 				if(cssToken.unit == "fr") {
-					return { type: TRACK_BREADTH_FRACTION, value:cssToken.num };
+					return { type: TRACK_BREADTH_FRACTION, value:cssToken.value };
 				} else {
 					return { type: TRACK_BREADTH_LENGTH, value:cssUnits.convertToPixels(cssToken.toCSSString(), this.element) };
 				}
@@ -1988,7 +1988,8 @@ module.exports = (function(window, document) { "use strict";
 									} else {
 										
 										// Distribute space beyond growth limits
-										// If space remains after all tracks are frozen, unfreeze and continue to distribute space to 
+										// If space remains after all tracks are frozen, unfreeze and continue to distribute space to
+ 
 										
 										// - when handling min-content base sizes: 
 										if(target=='min-content') {
