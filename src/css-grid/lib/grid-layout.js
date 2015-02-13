@@ -690,7 +690,7 @@ module.exports = (function(window, document) { "use strict";
 			} else if(cssToken instanceof cssSyntax.DimensionToken) {
 				
 				if(cssToken.unit == "fr") {
-					return { type: TRACK_BREADTH_FRACTION, value:cssToken.num };
+					return { type: TRACK_BREADTH_FRACTION, value:cssToken.value };
 				} else {
 					return { type: TRACK_BREADTH_LENGTH, value:cssUnits.convertToPixels(cssToken.toCSSString(), this.element) };
 				}
