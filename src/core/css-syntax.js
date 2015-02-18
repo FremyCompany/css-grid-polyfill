@@ -1026,7 +1026,7 @@ function consumeAListOfDeclarations(s) {
 			if(decl = consumeADeclaration(new TokenStream(temp))) decls.push(decl);
 		} else {
 			parseerror(s);
-			reconsume();
+			s.reconsume();
 			while(!(s.next() instanceof SemicolonToken || s.next() instanceof EOFToken))
 				consumeAComponentValue(s);
 		}
