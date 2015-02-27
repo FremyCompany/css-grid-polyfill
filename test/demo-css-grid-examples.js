@@ -20,7 +20,7 @@ list.forEach(function(o) {
 	var filename = baseFilename.slice(0, -extension.length);
 	
 	o.filePath = resolve(root, o.relativePath);
-	o.screenshotPath = resolve(tmp, o.filePath.slice(root.length + 1).replace(/[\.\W+]/ig, "-") + ".png");
+	o.screenshotPath = resolve(tmp, o.filePath.slice(root.length + 1).slice(0, -extension.length) + ".png");
 	o.expectedImagePath = resolve(dirname(o.filePath), filename + ".png");
 	o.binfile = resolve(root, "bin/css-polyfills.js");
 
