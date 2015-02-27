@@ -10,39 +10,54 @@ var nightmare = new Nightmare({
 
 module.exports = function(data, callback) {
 
+	// gather some info about the compare request
 	var filePath = data.filePath;
 	var screenshotPath = data.screenshotPath;
 	var expectedImagePath = data.expectedImagePath;
 	var binfile = data.binfile;
 
+	// create our state machine
+	// (we only want to start comparing once the two files are ready)
 	var emitter = new (require("events").EventEmitter);
-	var file = {};
+	var files = { expected:null, result:null };
 
+	// initiate by taking a screenshot
 	nightmare
 		// .viewport(500, 350)
 		.goto(filePath)
-		.inject("js", binfile)
+		.inject("js", binfile)                                      // FIXME: is it actually required? why?
 		.screenshot(screenshotPath)
 		.run(function(err, nightmare) {
+			
+			// continue by reading the taken screenshot
 			if (err) throw err;
 			fs.readFile(screenshotPath, function(err, data) {
-				emitter.emit("file", "result", data);
+				emitter.emit("fileready", "result", data);
 			});
+			
 		});
-
+	
+	// then start reading the expected screenshot
 	fs.readFile(expectedImagePath, function(err, data) {
-		emitter.emit("file", "expected", data);
+		emitter.emit("fileready", "expected", data);
 	});
-	emitter.on("file", function(name, data) {
-		file[name] = data;
-		if (Object.keys(file).length >= 2) {
-			emitter.emit("ready", file);
+	
+	// save the read screenshots, then trigger comparison
+	emitter.on("fileready", function(name, data) {
+		
+		// save the received screenshot in the pool
+		files[name] = data;
+		
+		// once both files are there, start to compare
+		if (files.result && files.expected) {
+			emitter.emit("ready", files);
 		}
 	});
 
-	emitter.on("ready", function(file) {
-		resemble(file.expected)
-			.compareTo(file.result)
+	// once both file are there, compare them + call back
+	emitter.on("ready", function(files) {
+		resemble(files.expected)
+			.compareTo(files.result)
 			.onComplete(callback);
 	});
 
