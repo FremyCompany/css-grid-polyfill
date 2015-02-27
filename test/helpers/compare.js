@@ -1,6 +1,12 @@
 var fs = require("fs");
 var Nightmare = require("nightmare");
 var resemble = require("node-resemble-js");
+var phantomjs = require("phantomjs-bin");
+var dirname = require("path").dirname;
+
+var nightmare = new Nightmare({
+	phantomPath: dirname(phantomjs.path) + "/"
+});
 
 module.exports = function(data, callback) {
 
@@ -12,7 +18,6 @@ module.exports = function(data, callback) {
 	var emitter = new (require("events").EventEmitter);
 	var file = {};
 
-	var nightmare = new Nightmare();
 	nightmare
 		// .viewport(500, 350)
 		.goto(filePath)
