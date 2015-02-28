@@ -20,10 +20,12 @@ module.exports = function(data, callback) {
 	// (we only want to start comparing once the two files are ready)
 	var emitter = new (require("events").EventEmitter);
 	var files = { expected:null, result:null };
-
+	// set screen width and height
+	if (data.viewportWidth && data.viewportHeight) {
+		nightmare.viewport(data.viewportWidth, data.viewportHeight);
+	}
 	// initiate by taking a screenshot
 	nightmare
-		// .viewport(500, 350)
 		.goto(filePath)
 		.inject("js", binfile)                                      // FIXME: is it actually required? why?
 		.screenshot(screenshotPath)

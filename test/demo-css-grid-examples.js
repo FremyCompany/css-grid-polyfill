@@ -17,7 +17,26 @@ var ACCEPTABLE_TOLERANCE = 2.0/*percents*/;
 // pages which should be compared to a png
 var testsToRun = 
 [
-	{relativePath: "demo/css-grid/example2.html"}
+	{relativePath: "demo/css-grid/layout4.html", viewportWidth: 1024, viewportHeight: 320},
+	{relativePath: "demo/css-grid/layout5.html", viewportWidth: 1024, viewportHeight: 320},
+	{relativePath: "demo/css-grid/example2.html"},
+	{relativePath: "demo/css-grid/example3.html"},
+	{relativePath: "demo/css-grid/example4.html"},
+	{relativePath: "demo/css-grid/example5.html"},
+	{relativePath: "demo/css-grid/example6.html"},
+	{relativePath: "demo/css-grid/example7.html"},
+	{relativePath: "demo/css-grid/example8.html"},
+	{relativePath: "demo/css-grid/example9.html"},
+	{relativePath: "demo/css-grid/example10.html"},
+	{relativePath: "demo/css-grid/example11.html"},
+	{relativePath: "demo/css-grid/example12.html"},
+	{relativePath: "demo/css-grid/example13.html"},
+	{relativePath: "demo/css-grid/example14.html"},
+	{relativePath: "demo/css-grid/example15.html"},
+	{relativePath: "demo/css-grid/example16.html"},
+	{relativePath: "demo/css-grid/example19.html"},
+	{relativePath: "demo/css-grid/example17.html"},
+	{relativePath: "demo/css-grid/example18.html"},
 ];
 
 // execute all the tests in sequence
