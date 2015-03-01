@@ -1,4 +1,4 @@
-/*! CSS-POLYFILLS - v0.1.0 - 2015-02-13 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2015 François REMY; MIT-Licensed !*/
+/*! CSS-POLYFILLS - v0.1.0 - 2015-03-01 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2015 François REMY; MIT-Licensed !*/
 
 !(function() { 'use strict';
     var module = { exports:{} };
@@ -1155,7 +1155,7 @@ function consumeAListOfDeclarations(s) {
 			if(decl = consumeADeclaration(new TokenStream(temp))) decls.push(decl);
 		} else {
 			parseerror(s);
-			reconsume();
+			s.reconsume();
 			while(!(s.next() instanceof SemicolonToken || s.next() instanceof EOFToken))
 				consumeAComponentValue(s);
 		}
@@ -2923,7 +2923,7 @@ module.exports = (function(window, document) { "use strict";
 					onadded: function(e) {
 						
 						// add the rule to the matching list of this element
-						(e.myMatchedRules = e.myMatchedRules || []).push(rule); // TODO: does not respect priority order
+						(e.myMatchedRules = e.myMatchedRules || []).unshift(rule); // TODO: does not respect priority order
 						
 						// generate an update event
 						cssCascade.monitoredPropertiesHandler.onupdate(e, rule);
