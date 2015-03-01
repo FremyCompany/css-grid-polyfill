@@ -671,7 +671,7 @@ module.exports = (function(window, document) { "use strict";
 					onadded: function(e) {
 						
 						// add the rule to the matching list of this element
-						(e.myMatchedRules = e.myMatchedRules || []).push(rule); // TODO: does not respect priority order
+						(e.myMatchedRules = e.myMatchedRules || []).unshift(rule); // TODO: does not respect priority order
 						
 						// generate an update event
 						cssCascade.monitoredPropertiesHandler.onupdate(e, rule);
