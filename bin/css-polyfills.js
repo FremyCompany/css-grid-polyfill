@@ -1,4 +1,4 @@
-/*! CSS-POLYFILLS - v0.1.0 - 2015-03-01 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2015 François REMY; MIT-Licensed !*/
+/*! CSS-POLYFILLS - v0.1.0 - 2015-04-05 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2015 François REMY; MIT-Licensed !*/
 
 !(function() { 'use strict';
     var module = { exports:{} };
@@ -3045,18 +3045,16 @@ module.exports = (function(window, document) { "use strict";
 		cssCascade.loadAllStyleSheets();
 		document.addEventListener("DOMContentLoaded", function() {
 			cssCascade.loadAllStyleSheets();
-			if(window.querySelectorLive) {
-				window.querySelectorLive(
-					cssCascade.selectorForStylesheets,
-					{
-						onadded: function(e) {
-							// TODO: respect DOM order?
-							cssCascade.loadStyleSheetTag(e);
-							cssCascade.dispatchEvent('stylesheetadded');
-						}
+			querySelectorLive(
+				cssCascade.selectorForStylesheets,
+				{
+					onadded: function(e) {
+						// TODO: respect DOM order?
+						cssCascade.loadStyleSheetTag(e);
+						cssCascade.dispatchEvent('stylesheetadded');
 					}
-				)
-			}
+				}
+			)
 		})
 	}
 	
