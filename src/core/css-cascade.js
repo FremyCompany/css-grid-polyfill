@@ -793,18 +793,16 @@ module.exports = (function(window, document) { "use strict";
 		cssCascade.loadAllStyleSheets();
 		document.addEventListener("DOMContentLoaded", function() {
 			cssCascade.loadAllStyleSheets();
-			if(window.querySelectorLive) {
-				window.querySelectorLive(
-					cssCascade.selectorForStylesheets,
-					{
-						onadded: function(e) {
-							// TODO: respect DOM order?
-							cssCascade.loadStyleSheetTag(e);
-							cssCascade.dispatchEvent('stylesheetadded');
-						}
+			querySelectorLive(
+				cssCascade.selectorForStylesheets,
+				{
+					onadded: function(e) {
+						// TODO: respect DOM order?
+						cssCascade.loadStyleSheetTag(e);
+						cssCascade.dispatchEvent('stylesheetadded');
 					}
-				)
-			}
+				}
+			)
 		})
 	}
 	
