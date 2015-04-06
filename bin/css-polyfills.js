@@ -1,4 +1,4 @@
-/*! CSS-POLYFILLS - v0.1.0 - 2015-04-05 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2015 François REMY; MIT-Licensed !*/
+/*! CSS-POLYFILLS - v0.1.0 - 2015-04-06 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2015 François REMY; MIT-Licensed !*/
 
 !(function() { 'use strict';
     var module = { exports:{} };
@@ -2138,12 +2138,12 @@ module.exports = (function(window, document) { "use strict";
 		var eventStream; if(simpleSelector.indexOf(':') == -1) {
 			
 			// static stuff only
-			eventStream = new DOMUpdateEventStream(root); 
+			eventStream = new DOMUpdateEventStream({target:root}); 
 			
 		} else {
 			
 			// dynamic stuff too
-			eventStream = new DOMUpdateEventStream(root); 
+			eventStream = new DOMUpdateEventStream({target:root}); 
 			if(DOMUpdateEventStream != AnimationFrameEventStream) {
 			
 				// detect the presence of focus-related pseudo-classes
@@ -3175,6 +3175,155 @@ require.define('src/core/css-style.js');
 
 ////////////////////////////////////////
 
+module.exports = (function(window, document) { "use strict";
+	
+	var VSS_COUNT = 0;
+	function VirtualStylesheetFactory() {
+		var This = this || Object.create(VirtualStylesheet.prototype);
+		
+		// create the style sheet
+		var styleElement = document.createElement('style');
+		styleElement.id = "virtual-stylesheet-" + (VSS_COUNT++);
+		styleElement.setAttribute('data-no-css-polyfill', 'true');
+		styleElement.appendChild(document.createTextNode(''));
+		document.querySelector(':root > head').appendChild(styleElement);
+		
+		// grab its stylesheet object
+		var ss = styleElement.sheet;
+		if(!ss.cssRules) ss.cssRules = ss.rules;
+		ss.removeRule = ss.removeRule || function(i) {
+			return ss.deleteRule(i);
+		}
+		ss.addRule = ss.addRule || function(s,d,i) {
+			var rule = s+'{'+d+'}'
+			var index = typeof(i)=='number' ? i : ss.cssRules.length;
+			return ss.insertRule(rule, index);
+		}
+		
+		// create the mapping table
+		var rules = [];
+		
+		// add the factory
+		
+		This.stylesheets = Object.create(null);
+		This.createStyleSheet = function(name) {
+			return This.stylesheets[name] || (This.stylesheets[name] = new VirtualStylesheet(this, name));
+		}
+		
+		// add the methods
+		
+		This.addRule = function(selector, declarations, stylesheet, enabled) {
+			
+			// convert selector & declarations to a non-empty string
+			selector = '' + selector + ' ';
+			declarations = '' + declarations + ' ';
+			
+			// add the rule to the known rules
+			rules.push({ stylesheet: stylesheet, selector: selector, declarations: declarations, enabled: enabled });
+			
+			// add the rule to the enabled stylesheet, if needed
+			if(enabled) {
+				ss.addRule(selector, declarations);
+			}
+			
+		}
+		
+		This.disableAllRules = function(stylesheet) {
+			var ssIndex = ss.cssRules.length;
+			for(var i = rules.length; i--;) { var rule = rules[i];
+				if(rule.enabled) {
+					ssIndex--;
+					if(rule.stylesheet == stylesheet) {
+						ss.removeRule(ssIndex);
+						rule.enabled = false;
+					}
+				}
+			}
+		}
+		
+		This.enableAllRules = function(stylesheet) {
+			var ssIndex = 0;
+			for(var i = 0; i<rules.length; i++) { var rule = rules[i];
+				if(rule.enabled) {
+					ssIndex++;
+				} else {
+					if(rule.stylesheet == stylesheet) {
+						ss.addRule(rule.selector, rule.declarations, ssIndex);
+						rule.enabled = true;
+						ssIndex++;
+					}
+				}
+			}
+		}
+		
+		This.deleteAllRules = function(stylesheet) {
+			var ssIndex = ss.cssRules.length;
+			for(var i = rules.length; i--;) { var rule = rules[i];
+				if(rule.enabled) {
+					ssIndex--;
+					if(rule.stylesheet == stylesheet) {
+						ss.removeRule(ssIndex);
+						rules.splice(i, 1);
+					}
+				}
+			}
+		}
+		
+	}
+	
+	function VirtualStylesheet(factory, name) {
+		this.factory = factory;
+		this.name = name;
+		this.enabled = true;
+	}
+	
+	VirtualStylesheet.prototype.addRule = function(selector, declarations) {
+		this.factory.addRule(selector, declarations, this.name, this.enabled);
+	}
+	
+	VirtualStylesheet.prototype.set = function(element, properties) {
+		
+		// give an id to the element
+		if(!element.id) { element.id = element.uniqueID; }
+	
+		// compute the css rule to add
+		var selector = "#"+element.id;
+		var rule = ""; for(var property in properties) {
+			if(properties.hasOwnProperty(property)) {
+				rule += property + ": " + properties[property] + " !important; ";
+			}
+		}
+		
+		// and then add it
+		this.addRule(selector, rule);
+		
+	}
+	
+	VirtualStylesheet.prototype.enable = function() {
+		this.factory.enableAllRules(this.name); this.enabled=true;
+	}
+	
+	VirtualStylesheet.prototype.disable = function() {
+		this.factory.disableAllRules(this.name); this.enabled=false;
+	}
+	
+	VirtualStylesheet.prototype.clear = function() {
+		this.factory.deleteAllRules(this.name);
+	}
+	
+	VirtualStylesheet.prototype.revoke = function() {
+		this.clear();
+	}
+	
+	VirtualStylesheetFactory.VirtualStylesheet = VirtualStylesheet;
+	VirtualStylesheetFactory.VirtualStylesheetFactory = VirtualStylesheetFactory;
+	return VirtualStylesheetFactory;
+	
+})(window, document)
+require.define('src/core/css-virtual-stylesheet-factory.js');
+
+////////////////////////////////////////
+
 void function() {
 	if(!('uniqueID' in document.documentElement)) {
 		var uniqueID_counter = 0;
@@ -3592,9 +3741,13 @@ module.exports = (function(window, document) { "use strict";
 	    currentStyleOf  = cssStyle.currentStyleOf,
 	    enforceStyle    = cssStyle.enforceStyle,
 	    restoreStyle    = cssStyle.restoreStyle;
+		
+	var VirtualStylesheetFactory = require('src/core/css-virtual-stylesheet-factory.js');
 	
 	require('src/core/polyfill-dom-uniqueID.js');
 	require('src/core/polyfill-dom-requestAnimationFrame.js');
+	
+	var virtualStylesheetFactory = new VirtualStylesheetFactory();
 	
 	var createRuntimeStyle = function(reason, element) {
 		
@@ -3603,49 +3756,9 @@ module.exports = (function(window, document) { "use strict";
 			reason = (element.id || element.uniqueID) + '-' + reason;
 		}
 		
-		// create style element
-		var styleElement = document.getElementById(reason+'-polyfill-overrides');
-		if(!styleElement) {
-			styleElement = document.createElement('style');
-			styleElement.id = reason+'-polyfill-overrides';
-			styleElement.setAttribute('data-css-polyfilled', true);
-			styleElement.appendChild(document.createTextNode("")); // WebKit fix
-			document.querySelector(':root > head').appendChild(styleElement);
-		}
+		// return a virtual stylesheet
+		return virtualStylesheetFactory.createStyleSheet(reason);
 		
-		// get the associated style sheet
-		var ss = styleElement.sheet;
-		
-		// return a wrapper
-		return {
-			set: function(element, properties) {
-				
-				// give an id to the element
-				if(!element.id) { element.id = element.uniqueID; }
-			
-				// compute the css rule to add
-				var rule = "#"+element.id+" {";
-				for(var property in properties) {
-					if(properties.hasOwnProperty(property)) {
-						rule += property + ": " + properties[property] + " !important; ";
-					}
-				}
-				rule += "}";
-				
-				// and then add it
-				return ss.insertRule(rule, ss.length);
-				
-			},
-			revoke: function() {
-				styleElement.parentNode.removeChild(styleElement);
-			},
-			enable: function() {
-				ss.disabled = false;
-			},
-			disable: function() {
-				ss.disabled = true;
-			}
-		};
 	}
 	
 	var cssSizing = require('src/core/css-sizing.js');
@@ -6413,10 +6526,10 @@ require.define('src/css-grid/lib/grid-layout.js');
 					cssConsole.dir({message:"onupdate",element:element,selector:rule.selector.toCSSString(),rule:rule});
 					
 					// check if the element already has a grid or grid-item layout
-					if(element.gridModel) {
+					if(element.gridLayout) {
 					
 						// the layout must be recomputed
-						element.gridModel.scheduleRelayout();
+						element.gridLayout.scheduleRelayout();
 						
 					} else {
 					
@@ -6426,17 +6539,43 @@ require.define('src/css-grid/lib/grid-layout.js');
 					
 						// TODO: watch DOM for updates in the element?
 						if("MutationObserver" in window) {
-							var observer = new MutationObserver(function(e) {
-								element.gridLayout.scheduleRelayout();
-							});
-							var target = document.documentElement;
-							var config = { 
-								subtree: true, 
-								attributes: false, 
-								childList: true, 
-								characterData: true
-							};
-							observer.observe(target, config);
+							// non-attribute-related changes
+							void function() {
+								var observer = new MutationObserver(function(e) {
+									element.gridLayout.scheduleRelayout(); return;
+									//debugger; console.log(e);
+								});
+								var target = document.documentElement;
+								var config = {
+									subtree: true, 
+									attributes: false, 
+									childList: true, 
+									characterData: true
+								};
+								observer.observe(target, config);
+							}();
+							// attribute-related changes
+							void function() {
+								var observer = new MutationObserver(function(e) {
+									element.gridLayout.scheduleRelayout(); return;
+									//debugger; console.log(e);
+									//for(var i = e.length; i--;) {
+									//	var attr = e[i].attributeName;
+									//	if(attr=='class' || attr=='style') {
+									//		element.gridLayout.scheduleRelayout(); return;
+									//	}
+									//}
+								});
+								var target = element;
+								var config = { 
+									subtree: true, 
+									attributes: true, 
+									attributeFilter: ['class', 'style', 'width', 'height', 'src'],
+									childList: false, 
+									characterData: false
+								};
+							}();
+							
 						} else if("MutationEvent" in window) {
 							element.addEventListener('DOMSubtreeModified', function() {
 								if(!element.gridLayout.isLayoutScheduled) { element.gridLayout.scheduleRelayout(); }
@@ -6451,9 +6590,7 @@ require.define('src/css-grid/lib/grid-layout.js');
 								lastWidth = element.offsetWidth;
 								lastHeight = element.offsetHeight;
 								// relayout (and prevent double-dispatch)
-								if(observer) { observer.takeRecords(); observer.disconnect(element); }
 								element.gridLayout.scheduleRelayout();
-								if(observer) { observer.takeRecords(); observer.observe(element, config); }
 							}
 							requestAnimationFrame(updateOnResize);
 						}
