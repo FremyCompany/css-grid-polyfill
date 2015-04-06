@@ -103,12 +103,12 @@ module.exports = (function(window, document) { "use strict";
 		var eventStream; if(simpleSelector.indexOf(':') == -1) {
 			
 			// static stuff only
-			eventStream = new DOMUpdateEventStream(root); 
+			eventStream = new DOMUpdateEventStream({target:root}); 
 			
 		} else {
 			
 			// dynamic stuff too
-			eventStream = new DOMUpdateEventStream(root); 
+			eventStream = new DOMUpdateEventStream({target:root}); 
 			if(DOMUpdateEventStream != AnimationFrameEventStream) {
 			
 				// detect the presence of focus-related pseudo-classes
