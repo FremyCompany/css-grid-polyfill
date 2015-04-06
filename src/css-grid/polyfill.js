@@ -37,10 +37,10 @@
 					cssConsole.dir({message:"onupdate",element:element,selector:rule.selector.toCSSString(),rule:rule});
 					
 					// check if the element already has a grid or grid-item layout
-					if(element.gridModel) {
+					if(element.gridLayout) {
 					
 						// the layout must be recomputed
-						element.gridModel.scheduleRelayout();
+						element.gridLayout.scheduleRelayout();
 						
 					} else {
 					
