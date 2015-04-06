@@ -8,9 +8,13 @@ module.exports = (function(window, document) { "use strict";
 	    currentStyleOf  = cssStyle.currentStyleOf,
 	    enforceStyle    = cssStyle.enforceStyle,
 	    restoreStyle    = cssStyle.restoreStyle;
+		
+	var VirtualStylesheetFactory = require('core:css-virtual-stylesheet-factory');
 	
 	require('core:polyfill-dom-uniqueID');
 	require('core:polyfill-dom-requestAnimationFrame');
+	
+	var virtualStylesheetFactory = new VirtualStylesheetFactory();
 	
 	var createRuntimeStyle = function(reason, element) {
 		
@@ -19,49 +23,9 @@ module.exports = (function(window, document) { "use strict";
 			reason = (element.id || element.uniqueID) + '-' + reason;
 		}
 		
-		// create style element
-		var styleElement = document.getElementById(reason+'-polyfill-overrides');
-		if(!styleElement) {
-			styleElement = document.createElement('style');
-			styleElement.id = reason+'-polyfill-overrides';
-			styleElement.setAttribute('data-css-polyfilled', true);
-			styleElement.appendChild(document.createTextNode("")); // WebKit fix
-			document.querySelector(':root > head').appendChild(styleElement);
-		}
+		// return a virtual stylesheet
+		return virtualStylesheetFactory.createStyleSheet(reason);
 		
-		// get the associated style sheet
-		var ss = styleElement.sheet;
-		
-		// return a wrapper
-		return {
-			set: function(element, properties) {
-				
-				// give an id to the element
-				if(!element.id) { element.id = element.uniqueID; }
-			
-				// compute the css rule to add
-				var rule = "#"+element.id+" {";
-				for(var property in properties) {
-					if(properties.hasOwnProperty(property)) {
-						rule += property + ": " + properties[property] + " !important; ";
-					}
-				}
-				rule += "}";
-				
-				// and then add it
-				return ss.insertRule(rule, ss.length);
-				
-			},
-			revoke: function() {
-				styleElement.parentNode.removeChild(styleElement);
-			},
-			enable: function() {
-				ss.disabled = false;
-			},
-			disable: function() {
-				ss.disabled = true;
-			}
-		};
 	}
 	
 	var cssSizing = require('core:css-sizing');
