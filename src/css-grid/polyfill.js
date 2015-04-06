@@ -50,17 +50,43 @@
 					
 						// TODO: watch DOM for updates in the element?
 						if("MutationObserver" in window) {
-							var observer = new MutationObserver(function(e) {
-								element.gridLayout.scheduleRelayout();
-							});
-							var target = document.documentElement;
-							var config = { 
-								subtree: true, 
-								attributes: false, 
-								childList: true, 
-								characterData: true
-							};
-							observer.observe(target, config);
+							// non-attribute-related changes
+							void function() {
+								var observer = new MutationObserver(function(e) {
+									element.gridLayout.scheduleRelayout(); return;
+									//debugger; console.log(e);
+								});
+								var target = document.documentElement;
+								var config = {
+									subtree: true, 
+									attributes: false, 
+									childList: true, 
+									characterData: true
+								};
+								observer.observe(target, config);
+							}();
+							// attribute-related changes
+							void function() {
+								var observer = new MutationObserver(function(e) {
+									element.gridLayout.scheduleRelayout(); return;
+									//debugger; console.log(e);
+									//for(var i = e.length; i--;) {
+									//	var attr = e[i].attributeName;
+									//	if(attr=='class' || attr=='style') {
+									//		element.gridLayout.scheduleRelayout(); return;
+									//	}
+									//}
+								});
+								var target = element;
+								var config = { 
+									subtree: true, 
+									attributes: true, 
+									attributeFilter: ['class', 'style', 'width', 'height', 'src'],
+									childList: false, 
+									characterData: false
+								};
+							}();
+							
 						} else if("MutationEvent" in window) {
 							element.addEventListener('DOMSubtreeModified', function() {
 								if(!element.gridLayout.isLayoutScheduled) { element.gridLayout.scheduleRelayout(); }
@@ -75,9 +101,7 @@
 								lastWidth = element.offsetWidth;
 								lastHeight = element.offsetHeight;
 								// relayout (and prevent double-dispatch)
-								if(observer) { observer.takeRecords(); observer.disconnect(element); }
 								element.gridLayout.scheduleRelayout();
-								if(observer) { observer.takeRecords(); observer.observe(element, config); }
 							}
 							requestAnimationFrame(updateOnResize);
 						}
