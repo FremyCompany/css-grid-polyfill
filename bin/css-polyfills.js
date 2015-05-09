@@ -1,4 +1,4 @@
-/*! CSS-POLYFILLS - v0.1.0 - 2015-04-06 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2015 François REMY; MIT-Licensed !*/
+/*! CSS-POLYFILLS - v0.1.0 - 2015-05-09 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2015 François REMY; MIT-Licensed !*/
 
 !(function() { 'use strict';
     var module = { exports:{} };
@@ -137,8 +137,8 @@ module.exports = (function(window, document) { "use strict";
 // exports
 //
 var cssSyntax = { 
-	tokenize: function(string) {}, 
-	parse: function(tokens) {}
+	tokenize: function(string) {/*filled later*/}, 
+	parse: function(tokens) {/*filled later*/}
 };
 
 //
@@ -2523,12 +2523,12 @@ module.exports = (function(window, document) { "use strict";
 		getDefaultStyleForTag: function getDefaultStyleForTag(tagName) {
 			
 			// get result from cache
-			var result = cssRegionsHelpers[tagName];
+			var result = this.defaultStylesForTag[tagName];
 			if(result) return result;
 			
 			// create dummy virtual element
 			var element = document.createElement(tagName);
-			var style = cssRegionsHelpers[tagName] = getComputedStyle(element);
+			var style = this.defaultStylesForTag[tagName] = getComputedStyle(element);
 			if(style.display) return style;
 			
 			// webkit fix: insert the dummy element anywhere (head -> display:none)
