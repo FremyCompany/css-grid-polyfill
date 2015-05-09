@@ -271,12 +271,12 @@ module.exports = (function(window, document) { "use strict";
 		getDefaultStyleForTag: function getDefaultStyleForTag(tagName) {
 			
 			// get result from cache
-			var result = cssRegionsHelpers[tagName];
+			var result = this.defaultStylesForTag[tagName];
 			if(result) return result;
 			
 			// create dummy virtual element
 			var element = document.createElement(tagName);
-			var style = cssRegionsHelpers[tagName] = getComputedStyle(element);
+			var style = this.defaultStylesForTag[tagName] = getComputedStyle(element);
 			if(style.display) return style;
 			
 			// webkit fix: insert the dummy element anywhere (head -> display:none)
