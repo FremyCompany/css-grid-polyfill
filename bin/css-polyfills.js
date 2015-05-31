@@ -6180,10 +6180,12 @@ module.exports = (function(window, document) { "use strict";
 				
 			}
 			
+			var isReplaced = /^(SVG|MATH|IMG|VIDEO|PICTURE|OBJECT|EMBED|IFRAME)$/i;
+			
 			// if horizontal stretch
 			if(true) { // TODO: horizontal stretch
 				for(var i=this.items.length; i--;) { var item = this.items[i]; var width = items_widths[i];
-					if(item.minWidth <= width) { // TODO: fix that...
+					if(item.minWidth <= width || isReplaced.test(item.element.tagName)) { // TODO: fix that... (should only do it for auto elements with stretch enabled)
 						runtimeStyle.set(item.element, {"width": width +'px'});
 					}
 				}
@@ -6192,7 +6194,7 @@ module.exports = (function(window, document) { "use strict";
 			// if vertical stretch
 			if(true) { // TODO: vertical stretch
 				for(var i=this.items.length; i--;) { var item = this.items[i]; var height = items_heights[i];
-					if(item.element.offsetHeight <= height) {
+					if(item.element.offsetHeight <= height || isReplaced.test(item.element.tagName)) {
 						runtimeStyle.set(item.element, {"height": height+'px'});
 					}
 				}
