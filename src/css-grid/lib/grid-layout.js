@@ -600,7 +600,7 @@ module.exports = (function(window, document) { "use strict";
 			
 			// sort them by css order (desc) then by dom order (asc)
 			var sortableItems = this.items.map(function(item, i) { return { item: item, order: item.order, position: i } });
-			sortableItems.sort(function(a,b) { if(a.order==b.order) { return a.position-b.position } else if(a.order<b.order) { return +1 } else { return -1; } });
+			sortableItems.sort(function(a,b) { if(a.order==b.order) { return a.position-b.position } else if(a.order>b.order) { return +1 } else { return -1; } });
 			this.items = sortableItems.map(function(data) { return data.item; });
 			
 			// reset the style
