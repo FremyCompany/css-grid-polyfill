@@ -1,4 +1,4 @@
-/*! CSS-POLYFILLS - v0.1.0 - 2015-05-09 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2015 François REMY; MIT-Licensed !*/
+/*! CSS-POLYFILLS - v0.1.0 - 2015-05-31 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2015 François REMY; MIT-Licensed !*/
 
 !(function() { 'use strict';
     var module = { exports:{} };
@@ -2399,7 +2399,7 @@ module.exports = (function(window, document) { "use strict";
 						} else if(rule instanceof cssSyntax.AtRule && rule.name=="media") {
 							
 							// visit them
-							visit(nestedContent.toStylesheet().value);
+							visit(rule.toStylesheet().value);
 							
 						}
 						
@@ -2557,7 +2557,7 @@ module.exports = (function(window, document) { "use strict";
 				var bestValue = element.myStyle[cssPropertyName] || element.currentStyle[cssPropertyName];
 				
 				// return a parsed representation of the value
-				return cssSyntax.parse(bestValue);
+				return cssSyntax.parseAListOfComponentValues(bestValue);
 				
 			} else {
 				
@@ -2567,7 +2567,7 @@ module.exports = (function(window, document) { "use strict";
 				// TODO: what if important rules override that?
 				try {
 					if(bestValue = element.style.getPropertyValue(cssPropertyName) || element.myStyle[cssPropertyName]) {
-						return cssSyntax.parse(bestValue);
+						return cssSyntax.parseAListOfComponentValues(bestValue);
 					}
 				} catch(ex) {}
 				
@@ -3873,6 +3873,8 @@ module.exports = (function(window, document) { "use strict";
 		
 		reset: function() {
 			
+			this.order = 0;
+			
 			this.minWidth = 0;
 			this.maxWidth = 0;
 			
@@ -3933,6 +3935,9 @@ module.exports = (function(window, document) { "use strict";
 			
 			this.reset(); 
 			this.buggy = false;
+			
+			// compute order property
+			this.order = parseInt(style['order'])|0;
 			
 			// compute size
 			this.minWidth = cssSizing.minWidthOf(element);
@@ -4319,6 +4324,11 @@ module.exports = (function(window, document) { "use strict";
 				// move to the next element
 				currentItem = currentItem.nextElementSibling;
 			}
+			
+			// sort them by css order (desc) then by dom order (asc)
+			var sortableItems = this.items.map(function(item, i) { return { item: item, order: item.order, position: i } });
+			sortableItems.sort(function(a,b) { if(a.order==b.order) { return a.position-b.position } else if(a.order<b.order) { return +1 } else { return -1; } });
+			this.items = sortableItems.map(function(data) { return data.item; });
 			
 			// reset the style
 			this.reset();
@@ -6507,7 +6517,7 @@ require.define('src/css-grid/lib/grid-layout.js');
 		//
 		
 		var gridProperties = ['grid','grid-template','grid-template-rows','grid-template-columns','grid-template-areas','grid-areas','grid-auto-flow'];
-		var gridItemProperties = ['grid-area','grid-row','grid-column','grid-row-start','grid-row-end','grid-column-start','grid-column-end'];
+		var gridItemProperties = ['grid-area','grid-row','grid-column','grid-row-start','grid-row-end','grid-column-start','grid-column-end','order'];
 		for(var i=gridProperties.length; i--;)     { cssCascade.polyfillStyleInterface(gridProperties[i]); }
 		for(var i=gridItemProperties.length; i--;) { cssCascade.polyfillStyleInterface(gridItemProperties[i]); }
 		

@@ -140,6 +140,8 @@ module.exports = (function(window, document) { "use strict";
 		
 		reset: function() {
 			
+			this.order = 0;
+			
 			this.minWidth = 0;
 			this.maxWidth = 0;
 			
@@ -200,6 +202,9 @@ module.exports = (function(window, document) { "use strict";
 			
 			this.reset(); 
 			this.buggy = false;
+			
+			// compute order property
+			this.order = parseInt(style['order'])|0;
 			
 			// compute size
 			this.minWidth = cssSizing.minWidthOf(element);
@@ -586,6 +591,11 @@ module.exports = (function(window, document) { "use strict";
 				// move to the next element
 				currentItem = currentItem.nextElementSibling;
 			}
+			
+			// sort them by css order (desc) then by dom order (asc)
+			var sortableItems = this.items.map(function(item, i) { return { item: item, order: item.order, position: i } });
+			sortableItems.sort(function(a,b) { if(a.order==b.order) { return a.position-b.position } else if(a.order<b.order) { return +1 } else { return -1; } });
+			this.items = sortableItems.map(function(data) { return data.item; });
 			
 			// reset the style
 			this.reset();
