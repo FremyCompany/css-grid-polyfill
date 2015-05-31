@@ -147,7 +147,7 @@ module.exports = (function(window, document) { "use strict";
 						} else if(rule instanceof cssSyntax.AtRule && rule.name=="media") {
 							
 							// visit them
-							visit(nestedContent.toStylesheet().value);
+							visit(rule.toStylesheet().value);
 							
 						}
 						
@@ -305,7 +305,7 @@ module.exports = (function(window, document) { "use strict";
 				var bestValue = element.myStyle[cssPropertyName] || element.currentStyle[cssPropertyName];
 				
 				// return a parsed representation of the value
-				return cssSyntax.parse(bestValue);
+				return cssSyntax.parseAListOfComponentValues(bestValue);
 				
 			} else {
 				
@@ -315,7 +315,7 @@ module.exports = (function(window, document) { "use strict";
 				// TODO: what if important rules override that?
 				try {
 					if(bestValue = element.style.getPropertyValue(cssPropertyName) || element.myStyle[cssPropertyName]) {
-						return cssSyntax.parse(bestValue);
+						return cssSyntax.parseAListOfComponentValues(bestValue);
 					}
 				} catch(ex) {}
 				
