@@ -11,7 +11,7 @@ You are now ready to try out css grids in IE 9+ and probably most other recent b
 
 The polyfill’s css parser was built by following the CSS Syntax 3 specification, the polyfill should be able to process any css stylesheet. It can react to dynamic pseudo-classes like ‘:hover’, to media queries changes or window resize events. It also detects changes to the DOM that may affect the layout of your grid. 
 
-Most features of the css grid spec are in. For instance, the polyfill support more features than the IE’s implementation, as well as all the features implemented in Chrome Canary under a flag today, and actually renders more accurately than Chrome in most cases. 
+Most features of the css grid spec are in. For instance, the polyfill support more features than the IE’s implementation, as well as all the features implemented in Chrome Canary under a flag today, and actually renders more accurately than Chrome in most cases. [Edit: As of May 2015, this is no longer true as bugs I reported were fixed, and Chrome added new features]
 
 Use any of the possible ways you can define a grid (rows/columns, grid lines, areas, …) and mix them as you wish, with the caveat that you align items to the right edge of the grid using negative indexes, or with fixed row/column-end and a span value as row/column-start.
 
@@ -25,13 +25,12 @@ Fraction sizes (the ‘fr’ unit) are also supported, and are indented to work 
 I guess you should be somewhat impressed at this point, but wonder if things are really as beautiful as painted before, so let’s move to actual demos!
 
 * [Bootstrap 16-columns grid](https://rawgit.com/FremyCompany/css-grid-polyfill/master/demo/css-grid/layout4.html)
-* [Responsive blog design](https://rawgit.com/FremyCompany/css-grid-polyfill/master/demo/css-grid/layout3.html)<1>
+* [Responsive blog design](https://rawgit.com/FremyCompany/css-grid-polyfill/master/demo/css-grid/layout3.html)
 * [Mixing cell-positioned and non-cell-positioned items](https://rawgit.com/FremyCompany/css-grid-polyfill/master/demo/css-grid/example19.html)
 * [Z-Index support](https://rawgit.com/FremyCompany/css-grid-polyfill/master/demo/css-grid/example17.html)
 * [Basic Hover Test](https://rawgit.com/FremyCompany/css-grid-polyfill/master/demo/css-grid/basic-hover-test.html)
 
 NOTE: most of those demos are coming from “[Grid By Example](http://gridbyexample.com/)”, a website from Rachel Andrew.
-NOTE <1> : padding around a grid is not supported at the moment, use a wrapper.
 
 
 
@@ -40,7 +39,7 @@ As always, there has to be gotchas.
 
 Because the layout is done asynchronously, the polyfill may play badly with other libraries that expect layout to be performed synchronously. This is particularly true if you plan to animate your grid.
 
-Like I said previously, you can’t apply a padding or a border to the grid element itself without messing with the layout at the moment, though I plan to fix this very soon. The whole polyfill is very sensitive to changes to the “box-sizing” property (and many frameworks like Bootstrap do make use of it); again, this will be ironed out soon but you have to be aware.
+The whole polyfill is very sensitive to changes to the “box-sizing” property (and many frameworks like Bootstrap do make use of it); again, this will be ironed out soon but you have to be aware.
 
 The polyfill doesn’t like fixed/absolutely positioned grid items. If you want to use them, just put them in a dummy wrapper, it will work fine.
 
