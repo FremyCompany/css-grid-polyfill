@@ -96,6 +96,7 @@
 						var lastWidth = element.offsetWidth;
 						var lastHeight = element.offsetHeight;
 						var updateOnResize = function() {
+							if(!element.gridLayout) { return; }
 							if(lastWidth != element.offsetWidth || lastHeight != element.offsetHeight) {
 								// update last known size
 								lastWidth = element.offsetWidth;
@@ -107,8 +108,12 @@
 						}
 						requestAnimationFrame(updateOnResize);
 						// TODO: watch the load event for relayout?
-						window.addEventListener('load', updateOnResize);
-					
+						window.addEventListener('load', function(){element.gridLayout&&element.gridLayout.scheduleRelayout()});
+						var images = element.querySelectorAll('img');
+						for(var i = images.length; i--;) {
+							images[i].addEventListener('load', function(){element.gridLayout&&element.gridLayout.scheduleRelayout()});
+						}
+						
 					}
 					
 				}

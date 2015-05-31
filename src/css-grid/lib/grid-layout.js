@@ -519,6 +519,12 @@ module.exports = (function(window, document) { "use strict";
 	
 		reset: function() {
 			
+			// layout exclusion style
+			this.hlPadding = 0;
+			this.hrPadding = 0;
+			this.vtPadding = 0;
+			this.vbPadding = 0;
+			
 			// computed
 			this.xLines = []; // array of array of names
 			this.xSizes = []; // array of numbers (in pixels)
@@ -631,6 +637,12 @@ module.exports = (function(window, document) { "use strict";
 				}
 				
 			}
+			
+			var usedStyle = style;
+			this.hlPadding = parseInt(usedStyle.getPropertyValue('border-left-width')) + parseInt(usedStyle.getPropertyValue('padding-left'));
+			this.hrPadding = parseInt(usedStyle.getPropertyValue('border-right-width')) + parseInt(usedStyle.getPropertyValue('padding-right'));
+			this.vtPadding = parseInt(usedStyle.getPropertyValue('border-top-width')) + parseInt(usedStyle.getPropertyValue('padding-top'));
+			this.vbPadding = parseInt(usedStyle.getPropertyValue('border-bottom-width')) + parseInt(usedStyle.getPropertyValue('padding-bottom'));
 			
 		},
 		
@@ -2402,7 +2414,7 @@ module.exports = (function(window, document) { "use strict";
 			items_widths.length = items_heights.length = this.items.length;
 			for(var i=this.items.length; i--;) { var item = this.items[i]; 
 				
-				var left = 0;
+				var left = this.hlPadding;
 				for(var x = 0; x<item.xStart; x++) {
 					left += xSizes[x].breadth;
 				}
@@ -2412,7 +2424,7 @@ module.exports = (function(window, document) { "use strict";
 					width += xSizes[x].breadth;
 				}
 				
-				var top = 0;
+				var top = this.vtPadding;
 				for(var y = 0; y<item.yStart; y++) {
 					top += ySizes[y].breadth;
 				}
