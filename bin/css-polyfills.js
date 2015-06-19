@@ -1,4 +1,4 @@
-/*! CSS-POLYFILLS - v0.1.0 - 2015-05-31 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2015 François REMY; MIT-Licensed !*/
+/*! CSS-POLYFILLS - v0.1.0 - 2015-06-19 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2015 François REMY; MIT-Licensed !*/
 
 !(function() { 'use strict';
     var module = { exports:{} };
@@ -4572,7 +4572,7 @@ module.exports = (function(window, document) { "use strict";
 			// parse tokens into data:
 			var I = 0;
 			var buggy = false;
-			var regexp = /^([-_a-zA-Z0-9]+|\.)\s*/;
+			var regexp = /^([-_a-zA-Z0-9]+|[.]+)\s*/;
 			var grid = [], areas = Object.create(null);
 			while(value[I]) {
 				
@@ -4586,7 +4586,7 @@ module.exports = (function(window, document) { "use strict";
 					str = str.substr(data[0].length); var cell = data[1];
 					
 					// update cell max pos (ignore empty cells)
-					if(cell!='.') {
+					if(cell!='.' && cell[0]!='.') {
 						if(!areas[cell]) { areas[cell] = { xStart:columns.length, xEnd:columns.length+1, yStart: I-1, yEnd: I }; }
 						if(areas[cell].xStart > columns.length) { return buggy=true; } 
 						if(areas[cell].yStart > I-1) { return buggy=true; }
@@ -4643,7 +4643,7 @@ module.exports = (function(window, document) { "use strict";
 		parseTrackDefinitions: function(lineNames, trackBreadths, cssText) {
 			
 			// replace the repeat() function by its full representation
-			cssText = cssText.replace(/repeat\(\s*([0-9]+)\s*\,((?:\([^()]*\)|[^()])+)\)/gi, function(s, n, v) {
+			cssText = cssText.replace(/\[/g,'(').replace(/\]/g,')').replace(/repeat\(\s*([0-9]+)\s*\,((?:\([^()]*\)|[^()])+)\)/gi, function(s, n, v) {
 				var result = ' ';
 				for(var i = parseInt(n); i--;) { 
 					result += v + ' ';
