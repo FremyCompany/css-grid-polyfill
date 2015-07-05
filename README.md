@@ -79,8 +79,13 @@ _Also, please don't edit files in the "bin" subdirectory as they are generated v
 ## Release History
 
 The aim of this section is to report the major milestones of the project: 
-
+  
+  * 2015-06-19: Added 'order' property, fixed bugs, and support the updated syntax
   * 2014-11-01: First release of the css-grid-polyfill
+  
+You can follow the release or install them using bower from there:
+
+https://github.com/FremyCompany/css-grid-polyfill-binaries.
 
 
 ## License
