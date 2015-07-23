@@ -1916,7 +1916,7 @@ module.exports = (function(window, document) { "use strict";
 								}
 								
 								// if no space to distribute, just lock auto columns:
-								if(spaceToDistribute<=0) {
+								if(spaceToDistribute <= 1/1024) { //due to double precision, this may never reach perfect 0
 									for(var cx = item_xStart; cx<item_xEnd; cx++) {
 										if(xSizes[cx].limit == infinity) {
 											xSizes[cx].limit = xSizes[cx].base;
