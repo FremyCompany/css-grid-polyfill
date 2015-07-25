@@ -1,6 +1,6 @@
 module.exports = (function(window, document) { "use strict";
 
-	require('polyfill-dom-console');
+	require('core:polyfill-dom-console');
 
 	//
 	// some other basic om code

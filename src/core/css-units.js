@@ -4,7 +4,7 @@
 module.exports = (function(window, document) {
 	
 	// import dependencies
-	var getBox = require('css-box').getBox;
+	var getBox = require('core:css-box').getBox;
 	
 	// define the module
 	var cssUnits = {

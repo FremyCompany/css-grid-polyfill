@@ -7,7 +7,7 @@
 
 	require('core:polyfill-dom-console');
 	var cssCascade = require('core:css-cascade');
-	var cssGrid = require('lib/grid-layout');
+	var cssGrid = require('./lib/grid-layout');
 	
 	var enabled = false;
 	var enablePolyfill = function() { if(enabled) { return; } else { enabled = true; }

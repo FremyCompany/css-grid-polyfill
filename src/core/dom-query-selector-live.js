@@ -14,7 +14,7 @@
 module.exports = (function(window, document) { "use strict";
 
 	// import dependencies
-	var eventStreams = require('dom-experimental-event-streams'),
+	var eventStreams = require('core:dom-experimental-event-streams'),
 	    DOMUpdateEventStream = eventStreams.DOMUpdateEventStream,
 		AnimationFrameEventStream = eventStreams.AnimationFrameEventStream,
 		CompositeEventStream = eventStreams.CompositeEventStream,

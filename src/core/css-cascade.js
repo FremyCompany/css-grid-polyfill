@@ -3,11 +3,11 @@
 module.exports = (function(window, document) { "use strict";
 	
 	// import dependencies
-	require('polyfill-dom-console');
-	require('polyfill-dom-requestAnimationFrame');
-	var cssSyntax = require('css-syntax');
-	var domEvents = require('dom-events');
-	var querySelectorLive = require('dom-query-selector-live');
+	require('core:polyfill-dom-console');
+	require('core:polyfill-dom-requestAnimationFrame');
+	var cssSyntax = require('core:css-syntax');
+	var domEvents = require('core:dom-events');
+	var querySelectorLive = require('core:dom-query-selector-live');
 	
 	// define the module
 	var cssCascade = {

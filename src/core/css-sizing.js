@@ -1,7 +1,7 @@
 module.exports = (function(window, document) {
 	
 	// import dependencies
-	var cssStyle  = require('css-style'),
+	var cssStyle  = require('core:css-style'),
 	    usedStyleOf     = cssStyle.usedStyleOf,
 	    currentStyleOf  = cssStyle.currentStyleOf,
 	    enforceStyle    = cssStyle.enforceStyle,

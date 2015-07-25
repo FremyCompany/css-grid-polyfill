@@ -38,5 +38,25 @@
     "grunt-contrib-uglify": "^0.6.0",
     "grunt-contrib-watch": "^0.4.0"
   },
-  "keywords": []
+  "keywords": [],
+  "browser": {
+    "core:css-box": "./src/core/css-box.js",
+    "core:css-cascade": "./src/core/css-cascade.js",
+    "core:css-sizing": "./src/core/css-sizing.js",
+    "core:css-style": "./src/core/css-style.js",
+    "core:css-syntax": "./src/core/css-syntax.js",
+    "core:css-units": "./src/core/css-units.js",
+    "core:css-virtual-stylesheet-factory": "./src/core/css-virtual-stylesheet-factory.js",
+    "core:dom-events": "./src/core/dom-events.js",
+    "core:dom-experimental-event-streams": "./src/core/dom-experimental-event-streams.js",
+    "core:dom-get-common-ancestor": "./src/core/dom-get-common-ancestor.js",
+    "core:dom-query-selector-live": "./src/core/dom-query-selector-live.js",
+    "core:polyfill-dom-classList": "./src/core/polyfill-dom-classList.js",
+    "core:polyfill-dom-console": "./src/core/polyfill-dom-console.js",
+    "core:polyfill-dom-matchMedia": "./src/core/polyfill-dom-matchMedia.js",
+    "core:polyfill-dom-requestAnimationFrame": "./src/core/polyfill-dom-requestAnimationFrame.js",
+    "core:polyfill-dom-uniqueID": "./src/core/polyfill-dom-uniqueID.js",
+    "css-grid:polyfill": "./src/css-grid/polyfill.js",
+    "css-grid:lib/grid-layout": "./src/css-grid/lib/grid-layout.js"
+  }
 }
