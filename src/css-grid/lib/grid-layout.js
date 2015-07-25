@@ -2093,7 +2093,7 @@ module.exports = (function(window, document) { "use strict";
 					}
 					
 					// check that there is some space to distribute
-					if(spaceToDistribute <= 0) { return; }
+					if(spaceToDistribute <= 1/1024) { return; } // NOTE: the space may never become 0 due to a rounding issue
 					
 					// Distribute space up to growth limits
 					var tracks = rows_and_limits = rows_and_limits.filter(function(b) { return ((b.minIsMinContent||b.minIsMaxContent) && b.base<b.limit); }, 0);
