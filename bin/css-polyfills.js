@@ -1,4 +1,4 @@
-/*! CSS-POLYFILLS - v0.1.0 - 2015-07-25 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2015 François REMY; MIT-Licensed !*/
+/*! CSS-POLYFILLS - v0.1.0 - 2015-08-02 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2015 François REMY; MIT-Licensed !*/
 
 !(function() { 'use strict';
     var module = { exports:{} };
@@ -5140,14 +5140,30 @@ module.exports = (function(window, document) { "use strict";
 				This.isLayoutScheduled = true;
 				requestAnimationFrame(function() {
 					try {
+						var savedScrolls = getScrollStates();
 						This.revokePolyfilledStyle();
 						This.updateFromElement();
 						This.performLayout();
 						This.generatePolyfilledStyle();
+						savedScrolls.forEach(function(d) {
+							d.element.scrollTop = d.top;
+							d.element.scrollLeft = d.left;
+						});
 					} finally {
 						This.isLayoutScheduled = false;
 					}
 				});
+			}
+			//-----------------------------------------------------------
+			function getScrollStates() {
+				var states = [];
+				var element = This.element;
+				while(element = element.parentNode) {
+					if("scrollTop" in element) {
+						states.push({ element: element, left: element.scrollLeft, top: element.scrollTop });
+					}
+				}
+				return states;
 			}
 		},
 		
