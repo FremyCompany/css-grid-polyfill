@@ -147,7 +147,7 @@ module.exports = (function(window, document) { "use strict";
 						} else if(rule instanceof cssSyntax.AtRule && rule.name=="media") {
 							
 							// visit them
-							visit(nestedContent.toStylesheet().value);
+							visit(rule.toStylesheet().value);
 							
 						}
 						
@@ -271,12 +271,12 @@ module.exports = (function(window, document) { "use strict";
 		getDefaultStyleForTag: function getDefaultStyleForTag(tagName) {
 			
 			// get result from cache
-			var result = cssRegionsHelpers[tagName];
+			var result = this.defaultStylesForTag[tagName];
 			if(result) return result;
 			
 			// create dummy virtual element
 			var element = document.createElement(tagName);
-			var style = cssRegionsHelpers[tagName] = getComputedStyle(element);
+			var style = this.defaultStylesForTag[tagName] = getComputedStyle(element);
 			if(style.display) return style;
 			
 			// webkit fix: insert the dummy element anywhere (head -> display:none)
@@ -305,7 +305,7 @@ module.exports = (function(window, document) { "use strict";
 				var bestValue = element.myStyle[cssPropertyName] || element.currentStyle[cssPropertyName];
 				
 				// return a parsed representation of the value
-				return cssSyntax.parse(bestValue);
+				return cssSyntax.parseAListOfComponentValues(bestValue);
 				
 			} else {
 				
@@ -315,7 +315,7 @@ module.exports = (function(window, document) { "use strict";
 				// TODO: what if important rules override that?
 				try {
 					if(bestValue = element.style.getPropertyValue(cssPropertyName) || element.myStyle[cssPropertyName]) {
-						return cssSyntax.parse(bestValue);
+						return cssSyntax.parseAListOfComponentValues(bestValue);
 					}
 				} catch(ex) {}
 				
@@ -671,7 +671,7 @@ module.exports = (function(window, document) { "use strict";
 					onadded: function(e) {
 						
 						// add the rule to the matching list of this element
-						(e.myMatchedRules = e.myMatchedRules || []).push(rule); // TODO: does not respect priority order
+						(e.myMatchedRules = e.myMatchedRules || []).unshift(rule); // TODO: does not respect priority order
 						
 						// generate an update event
 						cssCascade.monitoredPropertiesHandler.onupdate(e, rule);
@@ -793,18 +793,16 @@ module.exports = (function(window, document) { "use strict";
 		cssCascade.loadAllStyleSheets();
 		document.addEventListener("DOMContentLoaded", function() {
 			cssCascade.loadAllStyleSheets();
-			if(window.querySelectorLive) {
-				window.querySelectorLive(
-					cssCascade.selectorForStylesheets,
-					{
-						onadded: function(e) {
-							// TODO: respect DOM order?
-							cssCascade.loadStyleSheetTag(e);
-							cssCascade.dispatchEvent('stylesheetadded');
-						}
+			querySelectorLive(
+				cssCascade.selectorForStylesheets,
+				{
+					onadded: function(e) {
+						// TODO: respect DOM order?
+						cssCascade.loadStyleSheetTag(e);
+						cssCascade.dispatchEvent('stylesheetadded');
 					}
-				)
-			}
+				}
+			)
 		})
 	}
 	

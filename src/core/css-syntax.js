@@ -8,8 +8,8 @@ module.exports = (function(window, document) { "use strict";
 // exports
 //
 var cssSyntax = { 
-	tokenize: function(string) {}, 
-	parse: function(tokens) {}
+	tokenize: function(string) {/*filled later*/}, 
+	parse: function(tokens) {/*filled later*/}
 };
 
 //

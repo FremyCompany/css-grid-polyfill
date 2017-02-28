@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Test for the order property</title>
+    <meta charset="utf-8">
+    <style>
+	body {
+		margin: 40px;
+	}
+	.wrapper {
+		display: grid;
+		grid-template-columns: 100px;
+		background-color: #fff;
+		color: #444;
+	}
+
+	.box {
+		background-color: #444;
+		color: #fff;
+		padding: 20px;
+		font-size: 150%;
+	}
+	
+	.box.a { background-color: #444; }
+	.box.b { background-color: #555; }
+	.box.c { background-color: #666; }
+	.box.d { background-color: #777; }
+	.box.e { background-color: #888; }
+	.box.f { background-color: #999; }
+
+
+   </style>
+</head>
+
+ <body>
+  	
+	 <div class="wrapper">
+		<div class="box f" style="order: +2">F</div>
+		<div class="box d" style="order: +1">D</div>
+		<div class="box e" style="order: +1">E</div>
+		<div class="box b" style="order: +0">B</div>
+		<div class="box c" style="order: -0">C</div>
+		<div class="box a" style="order: -1">A</div>
+	</div>
+	<script src="../../bin/css-polyfills.min.js"></script>
+</body>
+</html>

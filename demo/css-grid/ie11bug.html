@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang='en'>
+
+<head>
+<meta name="description" content="css-polyfills.js problem on IE11">
+    <meta charset='UTF-8'>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <title>grid layout dynamic class IE11 bug example</title>
+	<script>var debug = false</script>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 5px;
+            background-color: #999;
+            color: #fff;
+            font: 87.5%/1.4 HelveticaNeue, "Helvetica Neue", Helvetica, Arial, sans-serif;
+            overflow: hidden;
+        }
+        
+        * {
+            -moz-user-select: none;
+            -khtml-user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+       
+        #top-div {
+            top: 0;
+            bottom: 50%;
+            left: 0;
+            right: 0;
+            background-color: coral;
+            position: absolute;
+        }
+
+        .grid-base {
+            top: 50%;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: lightgreen;
+            padding: 10px 0px;
+            margin: 0 auto 0 auto;
+            position: absolute;
+        }
+        
+        .grid-layout-cols-1 {
+            display: grid;
+            grid-template-rows: (row) 1fr;
+            grid-template-columns: (gutter) 6px repeat(1, (col) 1fr (gutter) 6px);
+        }
+        
+        .grid-layout-cols-2 {
+            display: grid;
+            grid-template-rows: (row) 1fr;
+            grid-template-columns: (gutter) 6px repeat(2, (col) 1fr (gutter) 6px);
+        }
+        
+        .grid-layout-cols-3 {
+            display: grid;
+            grid-template-rows: (row) 1fr;
+            grid-template-columns: (gutter) 6px repeat(3, (col) 1fr (gutter) 6px);
+        }
+        
+        .grid-layout-cols-4 {
+            display: grid;
+            grid-template-rows: (row) 1fr;
+            grid-template-columns: (gutter) 6px repeat(4, (col) 1fr (gutter) 6px);
+        }
+
+        .box {
+            background-color: #ddd;
+            padding: 20px 10px 1px;
+            color: #444;
+        }
+        
+        .grid1 {
+            grid-column: col 1 / span 1;
+            grid-row: row 1 / span 1;
+        }
+        
+        .grid2 {
+            grid-column: col 2 / span 1;
+            grid-row: row 1 / span 1;
+        }
+        
+        .grid3 {
+            grid-column: col 3 / span 1;
+            grid-row: row 1 / span 1;
+        }
+        
+        .grid4 {
+            grid-column: col 4 / span 1;
+            grid-row: row 1 / span 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="top-div">
+    <h4>works on Chrome, doesn't work on IE11</h4>
+    <label>Step 1 (to break) &nbsp;
+        <input type=button checked id="chk0" value="press 1st" onclick="moveGrid('60%', '40%')" /></label>
+    <br>
+    <label>Step 2 &nbsp;
+        <input type=checkbox checked id="chk1" onclick="setColState(0, this.checked)" />col1</label>
+    <label>
+        <input type=checkbox checked id="chk2" onclick="setColState(1, this.checked)" />col2</label>
+    <label>
+        <input type=checkbox checked id="chk3" onclick="setColState(2, this.checked)" />col3</label>
+    <label>
+        <input type=checkbox checked id="chk4" onclick="setColState(3, this.checked)" />col4</label>
+    <br>
+    <label>Step 3 (to fix) &nbsp;
+        <input type=button checked id="chk5" value="press last" onclick="moveGrid('59%', '41%')" /></label>
+    </div>
+
+    <div class="grid-base grid-layout-cols-4">
+        <div class="box grid1">01</div>
+        <div class="box grid2">02</div>
+        <div class="box grid3">03</div>
+        <div class="box grid4">04</div>
+    </div>
+
+    <script>
+        var colsState = [true, true, true, true];
+
+        function setColState(col, state) {
+            var grid = document.querySelector('.grid-base');
+            var items = document.querySelectorAll('.box');
+
+            colsState[col] = state;
+
+            var count = 0;
+            for (var i = 0; i < 4; i++) {
+                if (colsState[i]) {
+                    count += 1;
+                    items[i].className = 'box grid' + count.toString();
+                    items[i].style.display = 'block';
+                } else {
+                    items[i].className = 'box';
+                    items[i].style.display = 'none';
+                }
+            }
+            grid.className = 'grid-base grid-layout-cols-' + count.toString();
+
+            // hack to make css-polyfills.js work on IE11 -- seems to force the Mutation observer to fire 
+            //d = document.createElement('div');
+            //d1 = grid.appendChild(d);
+            //grid.removeChild(d1);         
+        }
+    </script>
+
+    <script>
+        var p1 = document.querySelector('#top-div');
+        var p2 = document.querySelector('.grid-base');
+
+        function moveGrid(b, t) {
+            p1.style.bottom = b;
+            p2.style.top = t;
+        }
+    </script>
+	
+	<script>
+		/*void function() {
+			var observer = new MutationObserver(function(mutations) {
+				mutations.forEach(function(e) {
+					console.log('1: '+e.attributeName);
+				});
+			});
+			
+			observer.observe(document.querySelector('.grid-base'), {
+				subtree: true,
+				childList: true,
+				attributes: true,
+				characterData: false
+			});
+		}();*/
+	</script>
+
+    <script src="../../bin/css-polyfills.js"></script>
+</body>
+
+</html>

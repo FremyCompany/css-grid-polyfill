@@ -8,9 +8,13 @@ module.exports = (function(window, document) { "use strict";
 	    currentStyleOf  = cssStyle.currentStyleOf,
 	    enforceStyle    = cssStyle.enforceStyle,
 	    restoreStyle    = cssStyle.restoreStyle;
+		
+	var VirtualStylesheetFactory = require('core:css-virtual-stylesheet-factory');
 	
 	require('core:polyfill-dom-uniqueID');
 	require('core:polyfill-dom-requestAnimationFrame');
+	
+	var virtualStylesheetFactory = new VirtualStylesheetFactory();
 	
 	var createRuntimeStyle = function(reason, element) {
 		
@@ -19,49 +23,9 @@ module.exports = (function(window, document) { "use strict";
 			reason = (element.id || element.uniqueID) + '-' + reason;
 		}
 		
-		// create style element
-		var styleElement = document.getElementById(reason+'-polyfill-overrides');
-		if(!styleElement) {
-			styleElement = document.createElement('style');
-			styleElement.id = reason+'-polyfill-overrides';
-			styleElement.setAttribute('data-css-polyfilled', true);
-			styleElement.appendChild(document.createTextNode("")); // WebKit fix
-			document.querySelector(':root > head').appendChild(styleElement);
-		}
+		// return a virtual stylesheet
+		return virtualStylesheetFactory.createStyleSheet(reason);
 		
-		// get the associated style sheet
-		var ss = styleElement.sheet;
-		
-		// return a wrapper
-		return {
-			set: function(element, properties) {
-				
-				// give an id to the element
-				if(!element.id) { element.id = element.uniqueID; }
-			
-				// compute the css rule to add
-				var rule = "#"+element.id+" {";
-				for(var property in properties) {
-					if(properties.hasOwnProperty(property)) {
-						rule += property + ": " + properties[property] + " !important; ";
-					}
-				}
-				rule += "}";
-				
-				// and then add it
-				return ss.insertRule(rule, ss.length);
-				
-			},
-			revoke: function() {
-				styleElement.parentNode.removeChild(styleElement);
-			},
-			enable: function() {
-				ss.disabled = false;
-			},
-			disable: function() {
-				ss.disabled = true;
-			}
-		};
 	}
 	
 	var cssSizing = require('core:css-sizing');
@@ -176,6 +140,8 @@ module.exports = (function(window, document) { "use strict";
 		
 		reset: function() {
 			
+			this.order = 0;
+			
 			this.minWidth = 0;
 			this.maxWidth = 0;
 			
@@ -236,6 +202,9 @@ module.exports = (function(window, document) { "use strict";
 			
 			this.reset(); 
 			this.buggy = false;
+			
+			// compute order property
+			this.order = parseInt(style['order'])|0;
 			
 			// compute size
 			this.minWidth = cssSizing.minWidthOf(element);
@@ -550,6 +519,12 @@ module.exports = (function(window, document) { "use strict";
 	
 		reset: function() {
 			
+			// layout exclusion style
+			this.hlPadding = 0;
+			this.hrPadding = 0;
+			this.vtPadding = 0;
+			this.vbPadding = 0;
+			
 			// computed
 			this.xLines = []; // array of array of names
 			this.xSizes = []; // array of numbers (in pixels)
@@ -623,6 +598,11 @@ module.exports = (function(window, document) { "use strict";
 				currentItem = currentItem.nextElementSibling;
 			}
 			
+			// sort them by css order (desc) then by dom order (asc)
+			var sortableItems = this.items.map(function(item, i) { return { item: item, order: item.order, position: i } });
+			sortableItems.sort(function(a,b) { if(a.order==b.order) { return a.position-b.position } else if(a.order>b.order) { return +1 } else { return -1; } });
+			this.items = sortableItems.map(function(data) { return data.item; });
+			
 			// reset the style
 			this.reset();
 			
@@ -657,6 +637,12 @@ module.exports = (function(window, document) { "use strict";
 				}
 				
 			}
+			
+			var usedStyle = style;
+			this.hlPadding = parseInt(usedStyle.getPropertyValue('border-left-width')) + parseInt(usedStyle.getPropertyValue('padding-left'));
+			this.hrPadding = parseInt(usedStyle.getPropertyValue('border-right-width')) + parseInt(usedStyle.getPropertyValue('padding-right'));
+			this.vtPadding = parseInt(usedStyle.getPropertyValue('border-top-width')) + parseInt(usedStyle.getPropertyValue('padding-top'));
+			this.vbPadding = parseInt(usedStyle.getPropertyValue('border-bottom-width')) + parseInt(usedStyle.getPropertyValue('padding-bottom'));
 			
 		},
 		
@@ -853,7 +839,7 @@ module.exports = (function(window, document) { "use strict";
 			// parse tokens into data:
 			var I = 0;
 			var buggy = false;
-			var regexp = /^([-_a-zA-Z0-9]+|\.)\s*/;
+			var regexp = /^([-_a-zA-Z0-9]+|[.]+)\s*/;
 			var grid = [], areas = Object.create(null);
 			while(value[I]) {
 				
@@ -867,7 +853,7 @@ module.exports = (function(window, document) { "use strict";
 					str = str.substr(data[0].length); var cell = data[1];
 					
 					// update cell max pos (ignore empty cells)
-					if(cell!='.') {
+					if(cell!='.' && cell[0]!='.') {
 						if(!areas[cell]) { areas[cell] = { xStart:columns.length, xEnd:columns.length+1, yStart: I-1, yEnd: I }; }
 						if(areas[cell].xStart > columns.length) { return buggy=true; } 
 						if(areas[cell].yStart > I-1) { return buggy=true; }
@@ -924,7 +910,7 @@ module.exports = (function(window, document) { "use strict";
 		parseTrackDefinitions: function(lineNames, trackBreadths, cssText) {
 			
 			// replace the repeat() function by its full representation
-			cssText = cssText.replace(/repeat\(\s*([0-9]+)\s*\,((?:\([^()]*\)|[^()])+)\)/gi, function(s, n, v) {
+			cssText = cssText.replace(/\[/g,'(').replace(/\]/g,')').replace(/repeat\(\s*([0-9]+)\s*\,((?:\([^()]*\)|[^()])+)\)/gi, function(s, n, v) {
 				var result = ' ';
 				for(var i = parseInt(n); i--;) { 
 					result += v + ' ';
@@ -1421,14 +1407,30 @@ module.exports = (function(window, document) { "use strict";
 				This.isLayoutScheduled = true;
 				requestAnimationFrame(function() {
 					try {
+						var savedScrolls = getScrollStates();
 						This.revokePolyfilledStyle();
 						This.updateFromElement();
 						This.performLayout();
 						This.generatePolyfilledStyle();
+						savedScrolls.forEach(function(d) {
+							d.element.scrollTop = d.top;
+							d.element.scrollLeft = d.left;
+						});
 					} finally {
 						This.isLayoutScheduled = false;
 					}
 				});
+			}
+			//-----------------------------------------------------------
+			function getScrollStates() {
+				var states = [];
+				var element = This.element;
+				while(element = element.parentNode) {
+					if("scrollTop" in element) {
+						states.push({ element: element, left: element.scrollLeft, top: element.scrollTop });
+					}
+				}
+				return states;
 			}
 		},
 		
@@ -1930,7 +1932,7 @@ module.exports = (function(window, document) { "use strict";
 								}
 								
 								// if no space to distribute, just lock auto columns:
-								if(spaceToDistribute<=0) {
+								if(spaceToDistribute <= 1/1024) { //due to double precision, this may never reach perfect 0
 									for(var cx = item_xStart; cx<item_xEnd; cx++) {
 										if(xSizes[cx].limit == infinity) {
 											xSizes[cx].limit = xSizes[cx].base;
@@ -2107,7 +2109,7 @@ module.exports = (function(window, document) { "use strict";
 					}
 					
 					// check that there is some space to distribute
-					if(spaceToDistribute <= 0) { return; }
+					if(spaceToDistribute <= 1/1024) { return; } // NOTE: the space may never become 0 due to a rounding issue
 					
 					// Distribute space up to growth limits
 					var tracks = rows_and_limits = rows_and_limits.filter(function(b) { return ((b.minIsMinContent||b.minIsMaxContent) && b.base<b.limit); }, 0);
@@ -2428,7 +2430,7 @@ module.exports = (function(window, document) { "use strict";
 			items_widths.length = items_heights.length = this.items.length;
 			for(var i=this.items.length; i--;) { var item = this.items[i]; 
 				
-				var left = 0;
+				var left = this.hlPadding;
 				for(var x = 0; x<item.xStart; x++) {
 					left += xSizes[x].breadth;
 				}
@@ -2438,7 +2440,7 @@ module.exports = (function(window, document) { "use strict";
 					width += xSizes[x].breadth;
 				}
 				
-				var top = 0;
+				var top = this.vtPadding;
 				for(var y = 0; y<item.yStart; y++) {
 					top += ySizes[y].breadth;
 				}
@@ -2461,10 +2463,12 @@ module.exports = (function(window, document) { "use strict";
 				
 			}
 			
+			var isReplaced = /^(SVG|MATH|IMG|VIDEO|PICTURE|OBJECT|EMBED|IFRAME)$/i;
+			
 			// if horizontal stretch
 			if(true) { // TODO: horizontal stretch
 				for(var i=this.items.length; i--;) { var item = this.items[i]; var width = items_widths[i];
-					if(item.minWidth <= width) { // TODO: fix that...
+					if(item.minWidth <= width || isReplaced.test(item.element.tagName)) { // TODO: fix that... (should only do it for auto elements with stretch enabled)
 						runtimeStyle.set(item.element, {"width": width +'px'});
 					}
 				}
@@ -2473,7 +2477,7 @@ module.exports = (function(window, document) { "use strict";
 			// if vertical stretch
 			if(true) { // TODO: vertical stretch
 				for(var i=this.items.length; i--;) { var item = this.items[i]; var height = items_heights[i];
-					if(item.element.offsetHeight <= height) {
+					if(item.element.offsetHeight <= height || isReplaced.test(item.element.tagName)) {
 						runtimeStyle.set(item.element, {"height": height+'px'});
 					}
 				}

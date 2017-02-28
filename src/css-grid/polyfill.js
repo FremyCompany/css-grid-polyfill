@@ -18,7 +18,7 @@
 		//
 		
 		var gridProperties = ['grid','grid-template','grid-template-rows','grid-template-columns','grid-template-areas','grid-areas','grid-auto-flow'];
-		var gridItemProperties = ['grid-area','grid-row','grid-column','grid-row-start','grid-row-end','grid-column-start','grid-column-end'];
+		var gridItemProperties = ['grid-area','grid-row','grid-column','grid-row-start','grid-row-end','grid-column-start','grid-column-end','order'];
 		for(var i=gridProperties.length; i--;)     { cssCascade.polyfillStyleInterface(gridProperties[i]); }
 		for(var i=gridItemProperties.length; i--;) { cssCascade.polyfillStyleInterface(gridItemProperties[i]); }
 		
@@ -37,10 +37,10 @@
 					cssConsole.dir({message:"onupdate",element:element,selector:rule.selector.toCSSString(),rule:rule});
 					
 					// check if the element already has a grid or grid-item layout
-					if(element.gridModel) {
+					if(element.gridLayout) {
 					
 						// the layout must be recomputed
-						element.gridModel.scheduleRelayout();
+						element.gridLayout.scheduleRelayout();
 						
 					} else {
 					
@@ -50,17 +50,43 @@
 					
 						// TODO: watch DOM for updates in the element?
 						if("MutationObserver" in window) {
-							var observer = new MutationObserver(function(e) {
-								element.gridLayout.scheduleRelayout();
-							});
-							var target = document.documentElement;
-							var config = { 
-								subtree: true, 
-								attributes: false, 
-								childList: true, 
-								characterData: true
-							};
-							observer.observe(target, config);
+							// non-attribute-related changes
+							void function() {
+								var observer = new MutationObserver(function(e) {
+									element.gridLayout.scheduleRelayout(); return;
+									//debugger; console.log(e);
+								});
+								var target = document.documentElement;
+								var config = {
+									subtree: true, 
+									attributes: false, 
+									childList: true, 
+									characterData: true
+								};
+								observer.observe(target, config);
+							}();
+							// attribute-related changes
+							void function() {
+								var observer = new MutationObserver(function(e) {
+									element.gridLayout.scheduleRelayout(); return;
+									//debugger; console.log(e);
+									//for(var i = e.length; i--;) {
+									//	var attr = e[i].attributeName;
+									//	if(attr=='class' || attr=='style') {
+									//		element.gridLayout.scheduleRelayout(); return;
+									//	}
+									//}
+								});
+								var target = element;
+								var config = { 
+									subtree: true, 
+									attributes: true, 
+									attributeFilter: ['class', 'style', 'width', 'height', 'src'],
+									childList: false, 
+									characterData: false
+								};
+							}();
+							
 						} else if("MutationEvent" in window) {
 							element.addEventListener('DOMSubtreeModified', function() {
 								if(!element.gridLayout.isLayoutScheduled) { element.gridLayout.scheduleRelayout(); }
@@ -70,21 +96,24 @@
 						var lastWidth = element.offsetWidth;
 						var lastHeight = element.offsetHeight;
 						var updateOnResize = function() {
+							if(!element.gridLayout) { return; }
 							if(lastWidth != element.offsetWidth || lastHeight != element.offsetHeight) {
 								// update last known size
 								lastWidth = element.offsetWidth;
 								lastHeight = element.offsetHeight;
 								// relayout (and prevent double-dispatch)
-								if(observer) { observer.takeRecords(); observer.disconnect(element); }
 								element.gridLayout.scheduleRelayout();
-								if(observer) { observer.takeRecords(); observer.observe(element, config); }
 							}
 							requestAnimationFrame(updateOnResize);
 						}
 						requestAnimationFrame(updateOnResize);
 						// TODO: watch the load event for relayout?
-						window.addEventListener('load', updateOnResize);
-					
+						window.addEventListener('load', function(){element.gridLayout&&element.gridLayout.scheduleRelayout()});
+						var images = element.querySelectorAll('img');
+						for(var i = images.length; i--;) {
+							images[i].addEventListener('load', function(){element.gridLayout&&element.gridLayout.scheduleRelayout()});
+						}
+						
 					}
 					
 				}
