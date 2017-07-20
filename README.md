@@ -1,8 +1,8 @@
 # CSS-Grid-Polyfill
 
-Welcome to this first version of the CSS-Grid-Polyfill. More pieces of information will come as time goes, but here's already a summary of the announcement blog post.
+> <strong>IMPORTANT NOTE:</strong> The Grid specification has undergone several major changes since this polyfill was written, and I have not had time to work on keeping the polyfill up to date. I welcome contributions and am ready to help, but I do not have time to commit on fixing issues myself at this time.
 
-The goal of this project is to provide a working implementation of css grids for current browsers.
+Welcome to this first version of the CSS-Grid-Polyfill. The goal of this project is to provide a working implementation of css grids for current browsers, for prototyping purposes.
 
 
 
