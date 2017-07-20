@@ -27,7 +27,8 @@
     "node": ">= 0.10.0"
   },
   "scripts": {
-    "test": "grunt nodeunit"
+    "test": "grunt nodeunit",
+    "verify": "tape test/*.js | tap-spec"
   },
   "devDependencies": {
     "grunt": "^0.4.5",
@@ -36,7 +37,12 @@
     "grunt-contrib-jshint": "^0.6.0",
     "grunt-contrib-nodeunit": "^0.2.0",
     "grunt-contrib-uglify": "^0.6.0",
-    "grunt-contrib-watch": "^0.4.0"
+    "grunt-contrib-watch": "^0.4.0",
+    "nightmare": "1.7.0",
+    "node-resemble-js": "0.0.4",
+    "phantomjs-bin": "1.0.1",
+    "tap-spec": "^2.2.2",
+    "tape": "^3.5.0"
   },
   "keywords": []
 }
