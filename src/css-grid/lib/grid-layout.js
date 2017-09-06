@@ -524,6 +524,8 @@ module.exports = (function(window, document) { "use strict";
 			this.hrPadding = 0;
 			this.vtPadding = 0;
 			this.vbPadding = 0;
+			this.rowGap = 0;
+			this.colGap = 0;
 			
 			// computed
 			this.xLines = []; // array of array of names
@@ -637,6 +639,9 @@ module.exports = (function(window, document) { "use strict";
 				}
 				
 			}
+			if(cssText=style["grid-row-gap"]) { this.parseGridRowGap(cssText); }
+			if(cssText=style["grid-column-gap"]) { this.parseGridColumnGap(cssText); }
+			if(cssText=style["grid-gap"]) { this.parseGridGap(cssText); }
 			
 			var usedStyle = style;
 			this.hlPadding = parseInt(usedStyle.getPropertyValue('border-left-width')) + parseInt(usedStyle.getPropertyValue('padding-left'));
@@ -989,6 +994,20 @@ module.exports = (function(window, document) { "use strict";
 			if(rowsTemplate   ) this.parseRowsTemplate(rowsTemplate);
 			if(columnsTemplate) this.parseColumnsTemplate(columnsTemplate);
 			if(areasTemplate  ) this.parseAreasTemplate(areasTemplate);
+		},
+
+		parseGridRowGap: function(cssText) { console.log('parseGridRowGap()', cssText);
+			this.rowGap = cssUnits.convertToPixels(cssText, this.element, { isHeightRelated: true });
+		},
+
+		parseGridColumnGap: function(cssText) { console.log('parseGridColumnGap()', cssText);
+			this.colGap = cssUnits.convertToPixels(cssText, this.element, { isWidthRelated: true });
+		},
+
+		parseGridGap: function(cssText) { console.log('parseGridGap()', cssText);
+			var values = cssText.split(/\s+/);
+			this.parseGridRowGap(cssText);
+			this.parseGridColumnGap(values[1] || cssText);
 		},
 		
 		buildExplicitMatrix: function() {
@@ -1733,8 +1752,10 @@ module.exports = (function(window, document) { "use strict";
 			///////////////////////////////////////////////////////////
 			var LIMIT_IS_INFINITE = 1;		
 			var infinity = 9999999.0;
-			var fullWidth = this.element.offsetWidth;
-			var fullHeight = this.element.offsetHeight;
+			var rowCount = this.growY ? this.rcMatrix.length : this.rcMatrix[0].length;
+			var colCount = this.growY ? this.rcMatrix[0].length : this.rcMatrix.length;
+			var fullWidth = this.element.offsetWidth - (this.getRowCount() - 1) * this.rowGap;
+			var fullHeight = this.element.offsetHeight - (this.getColCount() - 1) * this.colGap;
 			
 			///////////////////////////////////////////////////////////
 			// show child elements again
@@ -2284,9 +2305,10 @@ module.exports = (function(window, document) { "use strict";
 			var mode = 'x';
 			var fullSize = fullWidth;
 			var xSizes = this.xSizes.map(initializeFromConstraints);
-			
-			var getMinWidthOf = function(item) { return item.minWidth+item.hMargins; };
-			var getMaxWidthOf = function(item) { return item.maxWidth+item.hMargins; };
+			var colGap = this.colGap;
+
+			var getMinWidthOf = function(item) { return item.minWidth + item.hMargins + Math.max(0, item.xEnd - item.xStart - 1) * colGap; };
+			var getMaxWidthOf = function(item) { return item.maxWidth + item.hMargins + Math.max(0, item.xEnd - item.xStart - 1) * colGap; };
 			var getXStartOf = function(item) { return item.xStart; }; 
 			var getXEndOf = function(item) { return item.xEnd; };
 			
@@ -2338,9 +2360,10 @@ module.exports = (function(window, document) { "use strict";
 			var mode = 'y';
 			var fullSize = fullHeight;
 			var ySizes = this.ySizes.map(initializeFromConstraints);
-			
-			var getMinHeightOf = function(item) { return item.element.offsetHeight+item.vMargins; };
-			var getMaxHeightOf = function(item) { return item.element.offsetHeight+item.vMargins; };
+			var rowGap = this.rowGap;
+
+			var getMinHeightOf = function(item) { return item.element.offsetHeight + item.vMargins + Math.max(0, item.yEnd - item.yStart - 1) * rowGap; };
+			var getMaxHeightOf = function(item) { return item.element.offsetHeight + item.vMargins + Math.max(0, item.yEnd - item.yStart - 1) * rowGap; };
 			var getYStartOf = function(item) { return item.yStart; };
 			var getYEndOf = function(item) { return item.yEnd; };
 			
@@ -2407,11 +2430,13 @@ module.exports = (function(window, document) { "use strict";
 			for(var x = 0; x<xSizes.length; x++) {
 				grid_width += xSizes[x].breadth;
 			}
+			grid_width += this.colGap * (xSizes.length - 1);
 			
 			var grid_height = 0;
 			for(var y = 0; y<ySizes.length; y++) {
 				grid_height += ySizes[y].breadth;
 			}
+			grid_height += this.rowGap * (ySizes.length - 1);
 			
 			var runtimeStyleData = {};
 			if(["block","inline-block"].indexOf(usedStyle.getPropertyValue("display")) == -1) {
@@ -2434,6 +2459,7 @@ module.exports = (function(window, document) { "use strict";
 				for(var x = 0; x<item.xStart; x++) {
 					left += xSizes[x].breadth;
 				}
+				left += this.colGap * item.xStart;
 				
 				var width = 0;
 				for(var x = item.xStart; x<item.xEnd; x++) {
@@ -2444,12 +2470,13 @@ module.exports = (function(window, document) { "use strict";
 				for(var y = 0; y<item.yStart; y++) {
 					top += ySizes[y].breadth;
 				}
+				top += this.rowGap * item.yStart;
 				
 				var height = 0;
 				for(var y = item.yStart; y<item.yEnd; y++) {
 					height += ySizes[y].breadth;
 				}
-					
+				
 				
 				runtimeStyle.set(item.element, {
 					"position"    : "absolute",
