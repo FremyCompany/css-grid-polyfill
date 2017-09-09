@@ -996,17 +996,17 @@ module.exports = (function(window, document) { "use strict";
 			if(areasTemplate  ) this.parseAreasTemplate(areasTemplate);
 		},
 
-		parseGridRowGap: function(cssText) { console.log('parseGridRowGap()', cssText);
+		parseGridRowGap: function(cssText) {
 			this.rowGap = cssUnits.convertToPixels(cssText, this.element, { isHeightRelated: true });
 		},
 
-		parseGridColumnGap: function(cssText) { console.log('parseGridColumnGap()', cssText);
+		parseGridColumnGap: function(cssText) {
 			this.colGap = cssUnits.convertToPixels(cssText, this.element, { isWidthRelated: true });
 		},
 
-		parseGridGap: function(cssText) { console.log('parseGridGap()', cssText);
-			var values = cssText.split(/\s+/);
-			this.parseGridRowGap(cssText);
+		parseGridGap: function(cssText) {
+			var values = cssText.trim().split(/\s+/);
+			this.parseGridRowGap(values[0]);
 			this.parseGridColumnGap(values[1] || cssText);
 		},
 		
@@ -1754,8 +1754,8 @@ module.exports = (function(window, document) { "use strict";
 			var infinity = 9999999.0;
 			var rowCount = this.growY ? this.rcMatrix.length : this.rcMatrix[0].length;
 			var colCount = this.growY ? this.rcMatrix[0].length : this.rcMatrix.length;
-			var fullWidth = this.element.offsetWidth - (this.getRowCount() - 1) * this.rowGap;
-			var fullHeight = this.element.offsetHeight - (this.getColCount() - 1) * this.colGap;
+			var fullWidth = this.element.offsetWidth - Math.max(0, rowCount - 1) * this.rowGap;
+			var fullHeight = this.element.offsetHeight - Math.max(0, colCount - 1) * this.colGap;
 			
 			///////////////////////////////////////////////////////////
 			// show child elements again
@@ -2307,8 +2307,8 @@ module.exports = (function(window, document) { "use strict";
 			var xSizes = this.xSizes.map(initializeFromConstraints);
 			var colGap = this.colGap;
 
-			var getMinWidthOf = function(item) { return item.minWidth + item.hMargins + Math.max(0, item.xEnd - item.xStart - 1) * colGap; };
-			var getMaxWidthOf = function(item) { return item.maxWidth + item.hMargins + Math.max(0, item.xEnd - item.xStart - 1) * colGap; };
+			var getMinWidthOf = function(item) { return item.minWidth + item.hMargins - Math.max(0, item.xEnd - item.xStart - 1) * colGap; };
+			var getMaxWidthOf = function(item) { return item.maxWidth + item.hMargins - Math.max(0, item.xEnd - item.xStart - 1) * colGap; };
 			var getXStartOf = function(item) { return item.xStart; }; 
 			var getXEndOf = function(item) { return item.xEnd; };
 			
@@ -2362,8 +2362,8 @@ module.exports = (function(window, document) { "use strict";
 			var ySizes = this.ySizes.map(initializeFromConstraints);
 			var rowGap = this.rowGap;
 
-			var getMinHeightOf = function(item) { return item.element.offsetHeight + item.vMargins + Math.max(0, item.yEnd - item.yStart - 1) * rowGap; };
-			var getMaxHeightOf = function(item) { return item.element.offsetHeight + item.vMargins + Math.max(0, item.yEnd - item.yStart - 1) * rowGap; };
+			var getMinHeightOf = function(item) { return item.element.offsetHeight + item.vMargins - Math.max(0, item.yEnd - item.yStart - 1) * rowGap; };
+			var getMaxHeightOf = function(item) { return item.element.offsetHeight + item.vMargins - Math.max(0, item.yEnd - item.yStart - 1) * rowGap; };
 			var getYStartOf = function(item) { return item.yStart; };
 			var getYEndOf = function(item) { return item.yEnd; };
 			
@@ -2465,6 +2465,7 @@ module.exports = (function(window, document) { "use strict";
 				for(var x = item.xStart; x<item.xEnd; x++) {
 					width += xSizes[x].breadth;
 				}
+				width += Math.max(0, item.xEnd - item.xStart - 1) * this.colGap;
 				
 				var top = this.vtPadding;
 				for(var y = 0; y<item.yStart; y++) {
@@ -2476,6 +2477,7 @@ module.exports = (function(window, document) { "use strict";
 				for(var y = item.yStart; y<item.yEnd; y++) {
 					height += ySizes[y].breadth;
 				}
+				height += Math.max(0, item.yEnd - item.yStart - 1) * this.rowGap;
 				
 				
 				runtimeStyle.set(item.element, {
