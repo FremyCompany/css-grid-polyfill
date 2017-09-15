@@ -3,36 +3,64 @@ const fs = require('fs');
 const path = require('path');
 const puppeteer = require('puppeteer');
 
+const screen_sizes = [320, 720, 1480];
+
 const writeFile = (filename, content) => new Promise( (resolve, reject) =>
 	fs.writeFile( filename, content, 'utf-8', err => err ? reject(err) : resolve() )
 );
 
 (async () => {
 
-	const browser = await puppeteer.launch();
+	const browser = await puppeteer.launch({ headless: false, slowMo: 1000 }); console.log('launched');
+	
 	const dirpath = path.resolve('..');
+	const snapshots = {};
 
 	await Promise.all(
 		fs.readdirSync(dirpath).map( async filename => {
 
 			if( filename.endsWith('.html') ) {
-
-				const page = await browser.newPage();
-				await page.goto(`file:///${ dirpath }/${ filename }`);
 				
-				const selectorStyleMap = await page.evaluate(getStyles);
-				
-				if( Object.keys(selectorStyleMap).length ) {
-					await writeFile(filename + '.test.js', createSnapshotTest(selectorStyleMap), 'utf-8');
-				}
+				snapshots[filename] = {};
 
-				await page.close();
+				await Promise.all(
+					screen_sizes.map( async width => {
+						
+						const page = await browser.newPage();
+						await page.setViewport({ width, height: width });
+						await page.goto(`file:///${ dirpath }/${ filename }`);
+						await new Promise(resolve => setTimeout(resolve, 100));
+
+						snapshots[filename][width] = await page.evaluate(getStyles);
+
+						await page.close();
+					})
+				);
 			}
 		})
 	).catch(console.error);
 
+	deleteEmptyObjectProps(snapshots, 2);
+
+	await writeFile( './snapshots.js', 'var snapshots = ' + JSON.stringify(snapshots, null, 2) );
+
+	console.log('Updated snapshots.js')
+	console.log('Review the changes and commit them to the repo');
+
 	await browser.close();
 })();
+
+function deleteEmptyObjectProps( obj, depth = 1) {
+
+    Object.keys( obj ).forEach( function(key) {
+        if( Object.keys(obj[key]).length === 0 )
+            delete obj[key];
+        else if( depth > 1 )
+            deleteEmptyObjectProps(obj[key], depth - 1);
+    });
+
+    return obj;
+}
 
 function getStyles() {
 	
@@ -43,75 +71,17 @@ function getStyles() {
 		const wrapperSelector = '.' + Array.from(wrapper.classList).join('.');
 		const { top: wTop, left: wLeft } = wrapper.getBoundingClientRect();
 
-		for( let el of wrapper.children ) {
-			if( el.classList.length === 0 ) continue;
+		Array.from( wrapper.children ).forEach( (el, i) => {
+			if( el.classList.length === 0 ) return;
 			
-			const selector = wrapperSelector + ' .' + Array.from(el.classList).join('.');
+			const selector = wrapperSelector + ' .' + Array.from(el.classList).join('.') + ':nth-child(' + (i+1) + ')';
 			const { top: elTop, left: elLeft, width, height } = el.getBoundingClientRect();
 			const top = elTop - wTop;
 			const left = elLeft - wLeft;
 
 			selectorStyleMap[selector] = { top, left, width, height };
-		}
+		});
 	}
 
 	return selectorStyleMap;
 }
-
-function createSnapshotTest( selectorStyleMap ) {
-
-	return `
-var selectorStyleMap = ${ JSON.stringify(selectorStyleMap,null,2) };
-
-function compare() {
-
-	Object.keys( selectorStyleMap ).forEach( function(selector) {
-  
-    var expectedStyles = selectorStyleMap[selector];
-		var el = document.body.querySelector(selector);
-		var styles = getComputedStyle(el);
-
-    var matchOrThrow = function(prop) {
-
-      var actual = parseInt( styles[prop] );
-			var expected = expectedStyles[prop];
-			var min_expected = expected - actual * 0.05;
-			var max_expected = expected + actual * 0.05;
-
-      if( actual < min_expected || actual > max_expected ) {
-        throw new Error(
-          '"$selector" "$prop" ($actual) did not match expected value ($expected)'
-            .replace('$selector', selector)
-            .replace('$prop', prop)
-            .replace('$actual', actual)
-            .replace('$expected', expected)
-        );
-      }
-    }
-
-    matchOrThrow('top');
-    matchOrThrow('left');
-    matchOrThrow('width');
-    matchOrThrow('height');
-	});
-}
-
-function test() {
-	try {
-		compare();
-		console.log('Passed');
-		window.postMessage( JSON.stringify({ error: false }), '*' );
-	}
-	catch( err ) {
-		console.log('Failed:', err.message);
-		window.postMessage( JSON.stringify({ error: true, message: err.message }), '*' );
-		throw err;
-	}
-}
-
-window.addEventListener( 'load', function() {
-	setTimeout( test, 1000 ); // TODO: find better way to hook into polyfill
-});
-`;
-}
-

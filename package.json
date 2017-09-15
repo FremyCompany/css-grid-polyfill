@@ -27,7 +27,9 @@
     "node": ">= 0.10.0"
   },
   "scripts": {
-    "test": "grunt nodeunit"
+    "build": "grunt",
+    "test": "node demo/css-grid/tests/test-server.js",
+    "update-snapshots": "node demo/css-grid/tests/update-snapshots.js"
   },
   "devDependencies": {
     "grunt": "^0.4.5",
