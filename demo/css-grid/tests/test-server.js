@@ -10,21 +10,12 @@ const server = http.createServer( (req, res) => {
 	const sendFile = filepath => fs.createReadStream(__dirname + '/' + filepath).pipe(res).on('error', console.error);
 
 	switch( req.url ) {
-		case '/favicon.ico': return res.end();
-		case '/':
-			sendFile('./test-runner.html');
-			break;
-		case '/snapshots.js':
-			sendFile('./snapshots.js');
-			break;
-		case '/test-runner.js':
-			sendFile('./test-runner.js');
-			break;
+		case '/favicon.ico':					return res.end();
+		case '/':								return sendFile('./test-runner.html');
+		case '/snapshots.js':					return sendFile('./snapshots.js');
+		case '/test-runner.js':					return sendFile('./test-runner.js');
 		default:
-			if( req.url.startsWith('/bin/') )
-				sendFile('../../..' + req.url);
-			else
-				sendFile('..' + req.url);
-			break;
+			if( req.url.startsWith('/bin/') )	return sendFile('../../..' + req.url);
+			else								return sendFile('..' + req.url);
 	}
 }).listen(4743, () => console.log('Listening on port 4743'));
