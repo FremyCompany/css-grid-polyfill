@@ -13,9 +13,7 @@ process.chdir('./demo/css-grid/tests');
 // reads files from disk synchronously - sorry, not sorry
 const server = http.createServer( (req, res) => {
 
-	const sendFile = filepath =>
-		fs.readFile( filepath, (err, buffer) =>
-			err ? console.error(err) : res.end(buffer) );
+	const sendFile = filepath => fs.createReadStream(filepath).pipe(res).on('error', console.error);
 
 	switch( req.url ) {
 		case '/favicon.ico': return res.end();
