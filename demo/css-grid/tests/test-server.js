@@ -2,18 +2,12 @@
 const http = require('http');
 const fs = require('fs');
 
-// ensure we're in the correct directory
-while( fs.readdirSync('.').includes('package.json') === false ) {
-	process.chdir('..');
-}
-process.chdir('./demo/css-grid/tests');
-
 // rudimentatary server to run tests
 // required to allow access into iframes with cross-origin error
 // reads files from disk synchronously - sorry, not sorry
 const server = http.createServer( (req, res) => {
 
-	const sendFile = filepath => fs.createReadStream(filepath).pipe(res).on('error', console.error);
+	const sendFile = filepath => fs.createReadStream(__dirname + '/' + filepath).pipe(res).on('error', console.error);
 
 	switch( req.url ) {
 		case '/favicon.ico': return res.end();
