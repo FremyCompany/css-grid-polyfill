@@ -74,7 +74,12 @@ In lieu of a formal styleguide, we will simply ask you to take care to maintain 
 
 _Also, please don't edit files in the "bin" subdirectory as they are generated via Grunt. You'll find source code in the "src" subdirectory!_
 
+### Testing
+Rather than have to test your changes manually, you can add an example page to the `demo/` directory and run `npm run update-snapshots`. Then you can run the test server using `npm run test` and open `localhost:4743` in your browser.
 
+`npm run update-snapshots` - this will 'snapshot' how the newest version of Chromium lays out the elements inside a `.wrapper` element
+
+`npm run test` runs a server which serves a html file on the root path that will open all the html pages in the `demo/` directory in iframes and compare how they are laid out to the snapshots taken from Chromium. You can open this page in any browser to test how your changes work cross-browser.
 
 ## Release History
 
