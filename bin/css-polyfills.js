@@ -1354,17 +1354,16 @@ module.exports = (function() {
 		
 		minWidthOf: function*(element) {
 		
-			return 25; // TODO: remove this when Ian fixes Blink
-
 			//
 			// make the parent an infinite relative container (if necessary)
 			//
-			var fragment = yield element.layoutNextFragment({ availableInlineSize: infinity });
-			
+			var fragment = yield element.layoutNextFragment({ });
+
 			//
 			// return the result
 			//
-			return fragment.inlineSize;
+			return Math.max(fragment.inlineSize, 25); // TODO: remove this when Ian fixes Blink
+
 		},
 		
 		maxWidthOf: function*(element) {
