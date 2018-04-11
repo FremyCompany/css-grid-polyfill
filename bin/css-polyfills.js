@@ -2114,6 +2114,8 @@ module.exports = (function() { "use strict";
 			this.hrPadding = 0;
 			this.vtPadding = 0;
 			this.vbPadding = 0;
+			this.hPaddings = 0;
+			this.vPaddings = 0;
 			
 			// computed
 			this.xLines = []; // array of array of names
@@ -2225,6 +2227,9 @@ module.exports = (function() { "use strict";
 			this.hrPadding = parseInt(usedStyle.getPropertyValue('border-right-width')) + parseInt(usedStyle.getPropertyValue('padding-right'));
 			this.vtPadding = parseInt(usedStyle.getPropertyValue('border-top-width')) + parseInt(usedStyle.getPropertyValue('padding-top'));
 			this.vbPadding = parseInt(usedStyle.getPropertyValue('border-bottom-width')) + parseInt(usedStyle.getPropertyValue('padding-bottom'));
+
+			this.hPaddings = this.hlPadding + this.hrPadding;
+			this.vPaddings = this.vtPadding + this.vbPadding;
 			
 		},
 		
@@ -3302,8 +3307,8 @@ module.exports = (function() { "use strict";
 		
 			var LIMIT_IS_INFINITE = 1;		
 			var infinity = 9999999.0;
-			var fullWidth = this.element.fixedInlineSize;
-			var fullHeight = this.element.fixedBlockSize | 0; // fixedBlockSize is null if no height is defined
+			var fullWidth = this.element.fixedInlineSize != null ? this.element.fixedInlineSize - this.hPaddings : infinity;
+			var fullHeight = this.element.fixedBlockSize != null ? this.element.fixedBlockSize - this.vPaddings : 0; // fixedBlockSize is null if no height is defined
 			
 			// 
 			// 10.3  Initialize Track Sizes
