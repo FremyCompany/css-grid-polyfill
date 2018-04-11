@@ -1,4 +1,4 @@
-/*! CSS-POLYFILLS - v0.1.0 - 2015-08-02 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2015 François REMY; MIT-Licensed !*/
+/*! CSS-POLYFILLS - v0.1.0 - 2018-04-11 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2018 François REMY; MIT-Licensed !*/
 
 !(function() { 'use strict';
     var module = { exports:{} };
@@ -6,132 +6,11 @@
 
 ////////////////////////////////////////
 
-!(function(window, document) { "use strict";
-
-	//
-	// some code for console polyfilling
-	//
-	if(!window.console) {
-			
-		window.console = {
-			backlog: '',
-			
-			log: function(x) { this.backlog+=x+'\n'; if(window.debug) alert(x); },
-			
-			dir: function(x) { try { 
-				
-				var elm = function(e) {
-					if(e.innerHTML) {
-						return {
-							tagName: e.tagName,
-							className: e.className,
-							id: e.id,
-							innerHTML: e.innerHTML.substr(0,100)
-						}
-					} else {
-						return {
-							nodeName: e.nodeName,
-							nodeValue: e.nodeValue
-						}
-					}
-				};
-				
-				var jsonify = function(o) {
-					var seen=[];
-					var jso=JSON.stringify(o, function(k,v){
-						if (typeof v =='object') {
-							if ( !seen.indexOf(v) ) { return '__cycle__'; }
-							if ( v instanceof window.Node) { return elm(v); }
-							seen.push(v);
-						} return v;
-					});
-					return jso;
-				};
-				
-				this.log(jsonify(x)); 
-				
-			} catch(ex) { this.log(x) } },
-			
-			warn: function(x) { this.log(x) },
-			
-			error: function(x) { this.log("ERROR:"); this.log(x); }
-			
-		};
-		
-		if(!window.onerror) {
-			window.onerror = function() {
-				console.log([].slice.call(arguments,0).join("\n"))
-			};
-		}
-		
-	}
-
-	//
-	// this special console is used as a proxy emulating the CSS console of browsers
-	//
-	window.cssConsole = {
-		enabled: (!!window.debug), warnEnabled: (true),
-		log: function(x) { if(this.enabled) console.log(x) },
-		dir: function(x) { if(this.enabled) console.dir(x) },
-		warn: function(x) { if(this.warnEnabled) console.warn(x) },
-		error: function(x) { console.error(x); }
-	}
-
-})(window, document);
-require.define('src/core/polyfill-dom-console.js');
-
-////////////////////////////////////////
-
-void function() {
-	
-	// request animation frame
-    var vendors = ['webkit', 'moz', 'ms', 'o'];
-    for (var i = 0; i < vendors.length && !window.requestAnimationFrame; ++i) {
-        var vp = vendors[i];
-        window.requestAnimationFrame = window[vp+'RequestAnimationFrame'];
-        window.cancelAnimationFrame = (window[vp+'CancelAnimationFrame'] || window[vp+'CancelRequestAnimationFrame']);
-    }
-    if (!window.requestAnimationFrame || !window.cancelAnimationFrame) {
-		
-		// tick every 16ms
-        var listener_index = 0; var listeners = []; var tmp = []; var tick = function() {
-			var now = +(new Date()); var callbacks = listeners; listeners = tmp;
-			for(var i = 0; i<callbacks.length; i++) { callbacks[i](now); }
-			listener_index += callbacks.length; callbacks.length = 0; tmp = callbacks;
-			setTimeout(tick, 16);
-		}; tick();
-		
-		// add a listener
-        window.requestAnimationFrame = function(callback) {
-            return listener_index + listeners.push(callback);
-        };
-		
-		// remove a listener
-        window.cancelAnimationFrame = function(index) {
-			index -= listener_index; if(index >= 0 && index < listeners.length) {
-				listeners[index] = function() {};
-			}
-		};
-		
-    }
-	
-	// setImmediate
-	if(!window.setImmediate) {
-		window.setImmediate = function(f) { return setTimeout(f, 0) };
-		window.cancelImmediate = clearTimeout;
-	}
-	
-}();
-
-require.define('src/core/polyfill-dom-requestAnimationFrame.js');
-
-////////////////////////////////////////
-
 //
 // note: this file is based on Tab Atkins's CSS Parser
 // please include him (@tabatkins) if you open any issue for this file
 // 
-module.exports = (function(window, document) { "use strict";
+module.exports = (function() { "use strict";
 
 // 
 // exports
@@ -1462,2054 +1341,49 @@ cssSyntax.parseCSSValue = parseAListOfComponentValues;
 return cssSyntax;
 
 }());
-
 require.define('src/core/css-syntax.js');
 
 ////////////////////////////////////////
 
-module.exports = (function(window, document) { "use strict";
-
-	require('src/core/polyfill-dom-console.js');
-
-	//
-	// some other basic om code
-	//
-	var domEvents = {
-		
-		//
-		// the following functions are about event cloning
-		//
-		cloneMouseEvent: function cloneMouseEvent(e) {
-			var evt = document.createEvent("MouseEvent");
-			evt.initMouseEvent( 
-				e.type, 
-				e.canBubble||e.bubbles, 
-				e.cancelable, 
-				e.view, 
-				e.detail, 
-				e.screenX, 
-				e.screenY, 
-				e.clientX, 
-				e.clientY, 
-				e.ctrlKey, 
-				e.altKey, 
-				e.shiftKey, 
-				e.metaKey, 
-				e.button, 
-				e.relatedTarget
-			);
-			return evt;
-		},
-		
-		cloneKeyboardEvent: function cloneKeyboardEvent(e) {
-			// TODO: this doesn't work cross-browser...
-			// see https://gist.github.com/termi/4654819/ for the huge code
-			return domEvents.cloneCustomEvent(e);
-		},
-		
-		cloneCustomEvent: function cloneCustomEvent(e) {
-			var ne = document.createEvent("CustomEvent");
-			ne.initCustomEvent(e.type, e.canBubble||e.bubbles, e.cancelable, "detail" in e ? e.detail : e);
-			for(var prop in e) {
-				try {
-					if(e[prop] != ne[prop] && e[prop] != e.target) {
-						try { ne[prop] = e[prop]; }
-						catch (ex) { Object.defineProperty(ne,prop,{get:function() { return e[prop]} }) }
-					}
-				} catch(ex) {}
-			}
-			return ne;
-		},
-		
-		cloneEvent: function cloneEvent(e) {
-			
-			if(e instanceof MouseEvent) {
-				return domEvents.cloneMouseEvent(e);
-			} else if(e instanceof KeyboardEvent) {
-				return domEvents.cloneKeyboardEvent(e);
-			} else {
-				return domEvents.cloneCustomEvent(e);
-			}
-			
-		},
-		
-		//
-		// allows you to drop event support to any class easily
-		//
-		EventTarget: {
-			implementsIn: function(eventClass, static_class) {
-				
-				if(!static_class && typeof(eventClass)=="function") eventClass=eventClass.prototype;
-				
-				eventClass.dispatchEvent = domEvents.EventTarget.prototype.dispatchEvent;
-				eventClass.addEventListener = domEvents.EventTarget.prototype.addEventListener;
-				eventClass.removeEventListener = domEvents.EventTarget.prototype.removeEventListener;
-				
-			},
-			prototype: {}
-		}
-		
-	};
-
-	domEvents.EventTarget.prototype.addEventListener = function(eventType,f) {
-		if(!this.eventListeners) this.eventListeners=[];
-		
-		var ls = (this.eventListeners[eventType] || (this.eventListeners[eventType]=[]));
-		if(ls.indexOf(f)==-1) {
-			ls.push(f);
-		}
-		
-	}
-
-	domEvents.EventTarget.prototype.removeEventListener = function(eventType,f) {
-		if(!this.eventListeners) this.eventListeners=[];
-
-		var ls = (this.eventListeners[eventType] || (this.eventListeners[eventType]=[])), i;
-		if((i=ls.indexOf(f))!==-1) {
-			ls.splice(i,1);
-		}
-		
-	}
-
-	domEvents.EventTarget.prototype.dispatchEvent = function(event_or_type) {
-		if(!this.eventListeners) this.eventListeners=[];
-		
-		// abort quickly when no listener has been set up
-		if(typeof(event_or_type) == "string") {
-			if(!this.eventListeners[event_or_type] || this.eventListeners[event_or_type].length==0) {
-				return;
-			}
-		} else {
-			if(!this.eventListeners[event_or_type.type] || this.eventListeners[event_or_type.type].length==0) {
-				return;
-			}
-		}
-		
-		// convert the event
-		var event = event_or_type;
-		function setUpPropertyForwarding(e,ee,key) {
-			Object.defineProperty(ee,key,{
-				get:function() {
-					var v = e[key]; 
-					if(typeof(v)=="function") {
-						return v.bind(e);
-					} else {
-						return v;
-					}
-				},
-				set:function(v) {
-					e[key] = v;
-				}
-			});
-		}
-		function setUpTarget(e,v) {
-			try { Object.defineProperty(e,"target",{get:function() {return v}}); }
-			catch(ex) {}
-			finally {
-				
-				if(e.target !== v) {
-					
-					var ee = Object.create(Object.getPrototypeOf(e));
-					ee = setUpTarget(ee,v);
-					for(key in e) {
-						if(key != "target") setUpPropertyForwarding(e,ee,key);
-					}
-					return ee;
-					
-				} else {
-					
-					return e;
-					
-				}
-				
-			}
-		}
-		
-		// try to set the target
-		if(typeof(event)=="object") {
-			try { event=setUpTarget(event,this); } catch(ex) {}
-			
-		} else if(typeof(event)=="string") {
-			event = document.createEvent("CustomEvent");
-			event.initCustomEvent(event_or_type, /*canBubble:*/ true, /*cancelable:*/ false, /*detail:*/this);
-			try { event=setUpTarget(event,this); } catch(ex) {}
-			
-		} else {
-			throw new Error("dispatchEvent expect an Event object or a string containing the event type");
-		}
-		
-		// call all listeners
-		var ls = (this.eventListeners[event.type] || (this.eventListeners[event.type]=[]));
-		for(var i=ls.length; i--;) {
-			try { 
-				ls[i](event);
-			} catch(ex) {
-				setImmediate(function() { throw ex; });
-			}
-		}
-		
-		return event.isDefaultPrevented;
-	}
-	
-	return domEvents;
-	
-})(window, document);
-require.define('src/core/dom-events.js');
-
-////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////
-////                                                         ////
-////                 prerequirements of qSL                  ////
-////                                                         ////
-/////////////////////////////////////////////////////////////////
-////                                                         ////
-////   Please note that I require querySelectorAll to work   ////
-////                                                         ////
-////   See http://github.com/termi/CSS_selector_engine/      ////
-////   for a polyfill for older browsers                     ////
-////                                                         ////
-/////////////////////////////////////////////////////////////////
-
-// TODO: improve event streams
-// - look for a few optimizations ideas in gecko/webkit
-// - use arrays in CompositeEventStream to avoid nested debouncings
-module.exports = (function(window, document) { "use strict";
-
-	///
-	/// event stream implementation
-	/// please note this is required to 'live update' the qSA requests
-	///
-	function EventStream(connect, disconnect, reconnect) {
-		var self=this;
-		
-		// validate arguments
-		if(!disconnect) disconnect=function(){};
-		if(!reconnect) reconnect=connect;
-		
-		// high-level states
-		var isConnected=false;
-		var isDisconnected=false;
-		var shouldDisconnect=false;
-		
-		// global variables
-		var callback=null;
-		var yieldEvent = function() {
-			
-			// call the callback function, and pend disposal
-			shouldDisconnect=true;
-			try { callback && callback(self); } catch(ex) { setImmediate(function() { throw ex; }); }
-			
-			// if no action was taken, dispose
-			if(shouldDisconnect) { dispose(); }
-			
-		}
-		
-		// export the interface
-		var schedule = this.schedule = function(newCallback) {
-		
-			// do not allow to schedule on disconnected event streams
-			if(isDisconnected) { throw new Error("Cannot schedule on a disconnected event stream"); }
-			
-			// do not allow to schedule on already scheduled event streams
-			if(isConnected && !shouldDisconnect) { throw new Error("Cannot schedule on an already-scheduled event stream"); }
-			
-			// schedule the new callback
-			callback=newCallback; shouldDisconnect=false;
-			
-			// reconnect to the stream
-			if(isConnected) {
-				reconnect(yieldEvent);
-			} else {
-				connect(yieldEvent);
-				isConnected=true;
-			}
-		}
-		
-		var dispose = this.dispose = function() {
-		
-			// do not allow to dispose non-connected streams
-			if(isConnected) {
-			
-				// disconnect & save resources
-				disconnect(); 
-				self=null; yieldEvent=null; callback=null; 
-				isConnected=false; isDisconnected=true; shouldDisconnect=false;
-				
-			}
-		}
-	}
-
-	///
-	/// call a function every frame
-	///
-	function AnimationFrameEventStream(options) {
-		
-		// flag that says whether the observer is still needed or not
-		var rid = 0;
-			
-		// start the event stream
-		EventStream.call(
-			this, 
-			function connect(yieldEvent) { rid = requestAnimationFrame(yieldEvent); },
-			function disconnect() { cancelAnimationFrame(rid); }
-		);
-		
-	}
-
-	///
-	/// call a function every timeout
-	///
-	function TimeoutEventStream(options) {
-		
-		// flag that says whether the observer is still needed or not
-		var rid = 0; var timeout=(typeof(options)=="number") ? (+options) : ("timeout" in options ? +options.timeout : 333);
-			
-		// start the event stream
-		EventStream.call(
-			this, 
-			function connect(yieldEvent) { rid = setTimeout(yieldEvent, timeout); },
-			function disconnect() { clearTimeout(rid); }
-		);
-		
-	}
-
-	///
-	/// call a function every time the mouse moves
-	///
-	function MouseEventStream() {
-		var self=this; var pointermove = (("PointerEvent" in window) ? "pointermove" : (("MSPointerEvent" in window) ? "MSPointerMove" : "mousemove"));
-
-		// flag that says whether the event is still observed or not
-		var scheduled = false; var interval=0;
-		
-		// handle the synchronous nature of mutation events
-		var yieldEvent=null;
-		var yieldEventDelayed = function() {
-			if(scheduled) return;
-			window.removeEventListener(pointermove, yieldEventDelayed, true);
-			scheduled = requestAnimationFrame(yieldEvent);
-		}
-		
-		// start the event stream
-		EventStream.call(
-			this, 
-			function connect(newYieldEvent) {
-				yieldEvent=newYieldEvent;
-				window.addEventListener(pointermove, yieldEventDelayed, true);
-			},
-			function disconnect() { 
-				window.removeEventListener(pointermove, yieldEventDelayed, true);
-				cancelAnimationFrame(scheduled); yieldEventDelayed=null; yieldEvent=null; scheduled=false;
-			},
-			function reconnect(newYieldEvent) { 
-				yieldEvent=newYieldEvent; scheduled=false;
-				window.addEventListener(pointermove, yieldEventDelayed, true);
-			}
-		);
-		
-	}
-
-	///
-	/// call a function every time the mouse is clicked/unclicked
-	///
-	function MouseButtonEventStream() {
-		var self=this; 
-		var pointerup = (("PointerEvent" in window) ? "pointerup" : (("MSPointerEvent" in window) ? "MSPointerUp" : "mouseup"));
-		var pointerdown = (("PointerEvent" in window) ? "pointerdown" : (("MSPointerEvent" in window) ? "MSPointerDown" : "mousedown"));
-
-		// flag that says whether the event is still observed or not
-		var scheduled = false; var interval=0;
-		
-		// handle the synchronous nature of mutation events
-		var yieldEvent=null;
-		var yieldEventDelayed = function() {
-			if(scheduled) return;
-			window.removeEventListener(pointerup, yieldEventDelayed, true);
-			window.removeEventListener(pointerdown, yieldEventDelayed, true);
-			scheduled = requestAnimationFrame(yieldEvent);
-		}
-		
-		// start the event stream
-		EventStream.call(
-			this, 
-			function connect(newYieldEvent) {
-				yieldEvent=newYieldEvent;
-				window.addEventListener(pointerup, yieldEventDelayed, true);
-				window.addEventListener(pointerdown, yieldEventDelayed, true);
-			},
-			function disconnect() { 
-				window.removeEventListener(pointerup, yieldEventDelayed, true);
-				window.removeEventListener(pointerdown, yieldEventDelayed, true);
-				cancelAnimationFrame(scheduled); yieldEventDelayed=null; yieldEvent=null; scheduled=false;
-			},
-			function reconnect(newYieldEvent) { 
-				yieldEvent=newYieldEvent; scheduled=false;
-				window.addEventListener(pointerup, yieldEventDelayed, true);
-				window.addEventListener(pointerdown, yieldEventDelayed, true);
-			}
-		);
-		
-	}
-
-	///
-	/// call a function whenever the DOM is modified
-	///
-	var DOMUpdateEventStream;
-	if("MutationObserver" in window) {
-		DOMUpdateEventStream = function DOMUpdateEventStream(options) {
-			 
-			// configuration of the observer
-			if(options) {
-				var target = "target" in options ? options.target : document.documentElement;
-				var config = { 
-					subtree: "subtree" in options ? !!options.subtree : true, 
-					attributes: "attributes" in options ? !!options.attributes : true, 
-					childList: "childList" in options ? !!options.childList : true, 
-					characterData: "characterData" in options ? !!options.characterData : false
-				};
-			} else {
-				var target = document.documentElement;
-				var config = { 
-					subtree: true, 
-					attributes: true, 
-					childList: true, 
-					characterData: false
-				};
-			}
-								
-			// start the event stream
-			var observer = null;
-			EventStream.call(
-				this, 
-				function connect(yieldEvent) { if(config) { observer=new MutationObserver(yieldEvent); observer.observe(target,config); target=null; config=null; } },
-				function disconnect() { observer && observer.disconnect(); observer=null; },
-				function reconnect() { observer.takeRecords(); }
-			);
-
-		}
-	} else if("MutationEvent" in window) {
-		DOMUpdateEventStream = function DOMUpdateEventStream(options) {
-			var self=this;
-
-			// flag that says whether the event is still observed or not
-			var scheduled = false;
-			
-			// configuration of the observer
-			if(options) {
-				var target = "target" in options ? options.target : document.documentElement;
-			} else {
-				var target = document.documentElement;
-			}
-			
-			// handle the synchronous nature of mutation events
-			var yieldEvent=null;
-			var yieldEventDelayed = function() {
-				if(scheduled || !yieldEventDelayed) return;
-				document.removeEventListener("DOMContentLoaded", yieldEventDelayed, false);
-				document.removeEventListener("DOMContentLoaded", yieldEventDelayed, false);
-				target.removeEventListener("DOMSubtreeModified", yieldEventDelayed, false);
-				scheduled = requestAnimationFrame(yieldEvent);
-			}
-			
-			// start the event stream
-			EventStream.call(
-				this, 
-				function connect(newYieldEvent) {
-					yieldEvent=newYieldEvent;
-					document.addEventListener("DOMContentLoaded", yieldEventDelayed, false);
-					target.addEventListener("DOMSubtreeModified", yieldEventDelayed, false);
-				},
-				function disconnect() { 
-					document.removeEventListener("DOMContentLoaded", yieldEventDelayed, false);
-					target.removeEventListener("DOMSubtreeModified", yieldEventDelayed, false);
-					cancelAnimationFrame(scheduled); yieldEventDelayed=null; yieldEvent=null; scheduled=false;
-				},
-				function reconnect(newYieldEvent) { 
-					yieldEvent=newYieldEvent; scheduled=false;
-					target.addEventListener("DOMSubtreeModified", yieldEventDelayed, false);
-				}
-			);
-			
-		}
-	} else {
-		DOMUpdateEventStream = AnimationFrameEventStream;
-	}
-
-	///
-	/// call a function every time the focus shifts
-	///
-	function FocusEventStream() {
-		var self=this;
-		
-		// handle the filtering nature of focus events
-		var yieldEvent=null; var previousActiveElement=null; var previousHasFocus=false; var rid=0;
-		var yieldEventDelayed = function() {
-			
-			// if the focus didn't change
-			if(previousActiveElement==document.activeElement && previousHasFocus==document.hasFocus()) {
-				
-				// then do not generate an event
-				setTimeout(yieldEventDelayed, 333); // focus that didn't move is expected to stay
-				
-			} else {
-				
-				// else, generate one & save config
-				previousActiveElement=document.activeElement;
-				previousHasFocus=document.hasFocus();
-				yieldEvent();
-				
-			}
-		}
-		
-		// start the event stream
-		EventStream.call(
-			this, 
-			function connect(newYieldEvent) {
-				yieldEvent=newYieldEvent;
-				rid=setTimeout(yieldEventDelayed, 500); // let the document load
-			},
-			function disconnect() { 
-				clearTimeout(rid); yieldEventDelayed=null; yieldEvent=null; rid=0;
-			},
-			function reconnect(newYieldEvent) { 
-				yieldEvent=newYieldEvent;
-				rid=setTimeout(yieldEventDelayed, 100); // focus by tab navigation moves fast
-			}
-		);
-		
-	}
-
-	///
-	/// composite event stream
-	/// because sometimes you need more than one event source
-	///
-	function CompositeEventStream(stream1, stream2) {
-		var self=this;
-		
-		// fields
-		var yieldEvent=null; var s1=false, s2=false;
-		var yieldEventWrapper=function(s) { 
-			if(s==stream1) s1=true;
-			if(s==stream2) s2=true;
-			if(s1&&s2) return;
-			yieldEvent(self);
-		}
-		
-		// start the event stream
-		EventStream.call(
-			this, 
-			function connect(newYieldEvent) {
-				yieldEvent=newYieldEvent;
-				stream1.schedule(yieldEventWrapper);
-				stream2.schedule(yieldEventWrapper);
-			},
-			function disconnect() { 
-				stream1.dispose();
-				stream2.dispose();
-			},
-			function reconnect(newYieldEvent) { 
-				yieldEvent=newYieldEvent;
-				s1 && stream1.schedule(yieldEventWrapper);
-				s2 && stream2.schedule(yieldEventWrapper);
-				s1 = s2 = false;
-			}
-		);
-	}
-	
-	return {
-		EventStream:                EventStream,
-		AnimationFrameEventStream:  AnimationFrameEventStream,
-		TimeoutEventStream:         TimeoutEventStream,
-		MouseEventStream:           MouseEventStream,
-		MouseButtonEventStream:     MouseButtonEventStream,
-		DOMUpdateEventStream:       DOMUpdateEventStream,
-		FocusEventStream:           FocusEventStream,
-		CompositeEventStream:       CompositeEventStream
-	};
-
-})(window, document);
-require.define('src/core/dom-experimental-event-streams.js');
-
-////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////
-////                                                         ////
-////                  Implementation of qSL                  ////
-////                                                         ////
-/////////////////////////////////////////////////////////////////
-////                                                         ////
-////   Please note that I require querySelectorAll to work   ////
-////                                                         ////
-////   See http://github.com/termi/CSS_selector_engine/      ////
-////   for a polyfill for older browsers                     ////
-////                                                         ////
-/////////////////////////////////////////////////////////////////
-
-module.exports = (function(window, document) { "use strict";
-
-	// import dependencies
-	var eventStreams = require('src/core/dom-experimental-event-streams.js'),
-	    DOMUpdateEventStream = eventStreams.DOMUpdateEventStream,
-		AnimationFrameEventStream = eventStreams.AnimationFrameEventStream,
-		CompositeEventStream = eventStreams.CompositeEventStream,
-		FocusEventStream = eventStreams.FocusEventStream,
-		MouseButtonEventStream = eventStreams.MouseButtonEventStream,
-		TimeoutEventStream = eventStreams.TimeoutEventStream,
-		MouseEventStream = eventStreams.MouseEventStream;
-
-	///
-	/// the live querySelectorAll implementation
-	///
-	function querySelectorLive(selector, handler, root) {
-		
-		// restrict the selector coverage to some part of the DOM only
-		var root = root || document;
-		
-		// TODO: make use of "mutatedAncestorElement" to update only elements inside the mutated zone
-		
-		var currentElms = [];
-		var loop = function loop(eventStream) {
-			
-			// schedule next run
-			eventStream.schedule(loop);
-			
-			// update elements matching the selector
-			var newElms = [];
-			var oldElms = currentElms.slice(0);
-			var temps = root.querySelectorAll(selector);
-			for(var i=newElms.length=temps.length; i;) { newElms.push(temps[--i]); }
-			currentElms = newElms.slice(0); temps=null;
-			
-			// first let's clear all elements that have been removed from the document
-			oldElms = oldElms.filter(function(e) {
-				
-				// check whether the current element is still there
-				var isStillInDocument = (
-					e===document.documentElement 
-					|| document.documentElement.contains(e)
-				);
-				
-				if(isStillInDocument) {
-					
-					// NEED_COMPARE: we will compare this element to the new list
-					return true;
-					
-				} else {
-					
-					// DELETE: raise onremoved, pop old elements
-					try { handler.onremoved && handler.onremoved(e); } catch(ex) { setImmediate(function() {throw ex})}
-					return false;
-					
-				}
-				
-			});
-			
-			// now pop and match until both lists are exhausted
-			// (we use the fact the returned elements are in document order)
-			var el1 = oldElms.pop();
-			var el2 = newElms.pop();
-			while(el1 || el2) {
-				if(el1===el2) {
-				
-					// MATCH: pop both elements
-					el1 = oldElms.pop();
-					el2 = newElms.pop();
-					
-				} else if (el2 && /*el1 is after el2*/(!el1||(el2.compareDocumentPosition(el1) & (1|2|8|32))===0)) {
-					
-					// INSERT: raise onadded, pop new elements
-					try { handler.onadded && handler.onadded(el2); } catch(ex) { setImmediate(function() {throw ex})}
-					el2 = newElms.pop();
-					
-				} else {
-				
-					// DELETE: raise onremoved, pop old elements
-					try { handler.onremoved && handler.onremoved(el1); } catch(ex) { setImmediate(function() {throw ex})}
-					el1 = oldElms.pop();
-					
-				}
-			}
-			
-		};
-		
-		// use the event stream that best matches our needs
-		var simpleSelector = selector.replace(/:(dir|lang|root|empty|blank|nth-child|nth-last-child|first-child|last-child|only-child|nth-of-type|nth-last-of-child|fist-of-type|last-of-type|only-of-type|not|matches|default)\b/gi,'')
-		var eventStream; if(simpleSelector.indexOf(':') == -1) {
-			
-			// static stuff only
-			eventStream = new DOMUpdateEventStream({target:root}); 
-			
-		} else {
-			
-			// dynamic stuff too
-			eventStream = new DOMUpdateEventStream({target:root}); 
-			if(DOMUpdateEventStream != AnimationFrameEventStream) {
-			
-				// detect the presence of focus-related pseudo-classes
-				var reg = /:(focus|active)\b/gi;
-				if(reg.test(simpleSelector)) {
-					
-					// mouse events should be listened
-					eventStream = new CompositeEventStream(
-						new FocusEventStream(),
-						eventStream
-					);
-					
-					// simplify simpleSelector
-					var reg = /:(focus)\b/gi;
-					simpleSelector = simpleSelector.replace(reg, ''); // :active has other hooks
-					
-				}
-				
-				// detect the presence of mouse-button-related pseudo-classes
-				var reg = /:(active)\b/gi;
-				if(reg.test(simpleSelector)) {
-					
-					// mouse events should be listened
-					eventStream = new CompositeEventStream(
-						new MouseButtonEventStream(),
-						eventStream
-					);
-					
-					// simplify simpleSelector
-					simpleSelector = simpleSelector.replace(reg, '');
-					
-				}
-
-				// detect the presence of user input pseudo-classes
-				var reg = /:(target|checked|indeterminate|valid|invalid|in-range|out-of-range|user-error)\b/gi;
-				if(reg.test(simpleSelector)) {
-					
-					// slowly dynamic stuff do happen
-					eventStream = new CompositeEventStream(
-						new TimeoutEventStream(250),
-						eventStream
-					);
-					
-					// simplify simpleSelector
-					simpleSelector = simpleSelector.replace(reg, '');
-
-					var reg = /:(any-link|link|visited|local-link|enabled|disabled|read-only|read-write|required|optional)\b/gi;
-					// simplify simpleSelector
-					simpleSelector = simpleSelector.replace(reg, '');
-					
-				}
-				
-				// detect the presence of nearly-static pseudo-classes
-				var reg = /:(any-link|link|visited|local-link|enabled|disabled|read-only|read-write|required|optional)\b/gi;
-				if(reg.test(simpleSelector)) {
-					
-					// nearly static stuff do happen
-					eventStream = new CompositeEventStream(
-						new TimeoutEventStream(333),
-						eventStream
-					);
-					
-					// simplify simpleSelector
-					simpleSelector = simpleSelector.replace(reg, '');
-					
-				}
-				
-				// detect the presence of mouse-related pseudo-classes
-				var reg = /:(hover)\b/gi;
-				if(reg.test(simpleSelector)) {
-					
-					// mouse events should be listened
-					eventStream = new CompositeEventStream(
-						new MouseEventStream(),
-						eventStream
-					);
-					
-					// simplify simpleSelector
-					simpleSelector = simpleSelector.replace(reg, '');
-					
-				}
-				
-				// detect the presence of unknown pseudo-classes
-				if(simpleSelector.indexOf(':') !== -1) {
-					
-					// other stuff do happen, too (let's give up on events)
-					eventStream = new AnimationFrameEventStream(); 
-					
-				}
-				
-			}
-			
-		}
-		
-		// start handling changes
-		loop(eventStream);
-		
-	}
-	
-	return querySelectorLive;
-	
-})(window, document);
-require.define('src/core/dom-query-selector-live.js');
-
-////////////////////////////////////////
-
-// TODO: comment about the 'no_auto_stylesheet_detection' flag?
-
-module.exports = (function(window, document) { "use strict";
-	
-	// import dependencies
-	require('src/core/polyfill-dom-console.js');
-	require('src/core/polyfill-dom-requestAnimationFrame.js');
-	var cssSyntax = require('src/core/css-syntax.js');
-	var domEvents = require('src/core/dom-events.js');
-	var querySelectorLive = require('src/core/dom-query-selector-live.js');
-	
-	// define the module
-	var cssCascade = {
-		
-		//
-		// returns the priority of a unique selector (NO COMMA!)
-		// { the return value is an integer, with the same formula as webkit }
-		//
-		computeSelectorPriorityOf: function computeSelectorPriorityOf(selector) {
-			if(typeof selector == "string") selector = cssSyntax.parse(selector.trim()+"{}").value[0].selector;
-			
-			var numberOfIDs = 0;
-			var numberOfClasses = 0;
-			var numberOfTags = 0;
-			
-			// TODO: improve this parser, or find one on the web
-			for(var i = 0; i < selector.length; i++) {
-				
-				if(selector[i] instanceof cssSyntax.IdentifierToken) {
-					numberOfTags++;
-					
-				} else if(selector[i] instanceof cssSyntax.DelimToken) {
-					if(selector[i].value==".") {
-						numberOfClasses++; i++;
-					}
-					
-				} else if(selector[i] instanceof cssSyntax.ColonToken) {
-					if(selector[++i] instanceof cssSyntax.ColonToken) {
-						numberOfTags++; i++;
-						
-					} else if((selector[i] instanceof cssSyntax.Func) && (/^(not|matches)$/i).test(selector[i].name)) {
-						var nestedPriority = this.computeSelectorPriorityOf(selector[i].value);
-						numberOfTags += nestedPriority % 256; nestedPriority /= 256;
-						numberOfClasses += nestedPriority % 256; nestedPriority /= 256;
-						numberOfIDs += nestedPriority;
-						
-					} else {
-						numberOfClasses++;
-						
-					}
-					
-				} else if(selector[i] instanceof cssSyntax.SimpleBlock) {
-					if(selector[i].name=="[") {
-						numberOfClasses++;
-					}
-					
-				} else if(selector[i] instanceof cssSyntax.HashToken) {
-					numberOfIDs++;
-					
-				} else {
-					// TODO: stop ignoring unknown symbols?
-					
-				}
-				
-			}
-			
-			if(numberOfIDs>255) numberOfIds=255;
-			if(numberOfClasses>255) numberOfClasses=255;
-			if(numberOfTags>255) numberOfTags=255;
-			
-			return ((numberOfIDs*256)+numberOfClasses)*256+numberOfTags;
-			
-		},
-		
-		//
-		// returns an array of the css rules matching an element
-		//
-		findAllMatchingRules: function findAllMatchingRules(element) {
-			return this.findAllMatchingRulesWithPseudo(element);
-		},
-		
-		//
-		// returns an array of the css rules matching a pseudo-element
-		//
-		findAllMatchingRulesWithPseudo: function findAllMatchingRules(element,pseudo) {
-			pseudo = pseudo ? (''+pseudo).toLowerCase() : pseudo;
-			
-			// let's look for new results if needed...
-			var results = [];
-			
-			// walk the whole stylesheet...
-			var visit = function(rules) {
-				try {
-					for(var r = rules.length; r--; ) {
-						var rule = rules[r]; 
-						
-						// media queries hook
-						if(rule.disabled) continue;
-						
-						if(rule instanceof cssSyntax.StyleRule) {
-							
-							// consider each selector independently
-							var subrules = rule.subRules || cssCascade.splitRule(rule);
-							for(var sr = subrules.length; sr--; ) {
-								
-								var selector = subrules[sr].selector.toCSSString().replace(/ *(\/\*\*\/|  ) */g,' ').trim();
-								if(pseudo) {
-									// WE ONLY ACCEPT SELECTORS ENDING WITH THE PSEUDO
-									var selectorLow = selector.toLowerCase();
-									var newLength = selector.length-pseudo.length-1;
-									if(newLength<=0) continue;
-									
-									if(selectorLow.lastIndexOf('::'+pseudo)==newLength-1) {
-										selector = selector.substr(0,newLength-1);
-									} else if(selectorLow.lastIndexOf(':'+pseudo)==newLength) {
-										selector = selector.substr(0,newLength);
-									} else {
-										continue;
-									}
-									
-									// fix selectors like "#element > :first-child ~ ::before"
-									if(selector.trim().length == 0) { selector = '*' }
-									else if(selector[selector.length-1] == ' ') { selector += '*' }
-									else if(selector[selector.length-1] == '+') { selector += '*' }
-									else if(selector[selector.length-1] == '>') { selector += '*' }
-									else if(selector[selector.length-1] == '~') { selector += '*' }
-									
-								}
-								
-								// look if the selector matches
-								var isMatching = false;
-								try {
-									if(element.matches) isMatching=element.matches(selector)
-									else if(element.matchesSelector) isMatching=element.matchesSelector(selector)
-									else if(element.oMatchesSelector) isMatching=element.oMatchesSelector(selector)
-									else if(element.msMatchesSelector) isMatching=element.msMatchesSelector(selector)
-									else if(element.mozMatchesSelector) isMatching=element.mozMatchesSelector(selector)
-									else if(element.webkitMatchesSelector) isMatching=element.webkitMatchesSelector(selector)
-									else { throw new Error("no element.matches?") }
-								} catch(ex) { debugger; setImmediate(function() { throw ex; }) }
-								
-								// if yes, add it to the list of matched selectors
-								if(isMatching) { results.push(subrules[sr]); }
-								
-							}
-							
-						} else if(rule instanceof cssSyntax.AtRule && rule.name=="media") {
-							
-							// visit them
-							visit(rule.toStylesheet().value);
-							
-						}
-						
-					}
-				} catch (ex) {
-					setImmediate(function() { throw ex; });
-				}
-			}
-			
-			for(var s=cssCascade.stylesheets.length; s--; ) {
-				var rules = cssCascade.stylesheets[s];
-				visit(rules);
-			}
-			
-			return results;
-		},
-		
-		//
-		// a list of all properties supported by the current browser
-		//
-		allCSSProperties: null,
-		getAllCSSProperties: function getAllCSSProperties() {
-			
-			if(this.allCSSProperties) return this.allCSSProperties;
-			
-			// get all claimed properties
-			var s = getComputedStyle(document.documentElement); var ps = new Array(s.length);
-			for(var i=s.length; i--; ) {
-				ps[i] = s[i];
-			}
-			
-			// FIX A BUG WHERE WEBKIT DOESN'T REPORT ALL PROPERTIES
-			if(ps.indexOf('content')==-1) {ps.push('content');}
-			if(ps.indexOf('counter-reset')==-1) {
-				
-				ps.push('counter-reset');
-				ps.push('counter-increment');
-				
-				// FIX A BUG WHERE WEBKIT RETURNS SHIT FOR THE COMPUTED VALUE OF COUNTER-RESET
-				cssCascade.computationUnsafeProperties['counter-reset']=true;
-				
-			}
-			
-			// save in a cache for faster access the next times
-			return this.allCSSProperties = ps;
-			
-		},
-		
-		// 
-		// those properties are not safe for computation->specified round-tripping
-		// 
-		computationUnsafeProperties: {
-			"bottom"          : true,
-			"direction"       : true,
-			"display"         : true,
-			"font-size"       : true,
-			"height"          : true,
-			"left"            : true,
-			"line-height"     : true,
-			"margin-left"     : true,
-			"margin-right"    : true,
-			"margin-bottom"   : true,
-			"margin-top"      : true,
-			"max-height"      : true,
-			"max-width"       : true,
-			"min-height"      : true,
-			"min-width"       : true,
-			"padding-left"    : true,
-			"padding-right"   : true,
-			"padding-bottom"  : true,
-			"padding-top"     : true,
-			"right"           : true,
-			"text-align"      : true,
-			"text-align-last" : true,
-			"top"             : true,
-			"width"           : true,
-			__proto__         : null,
-		},
-		
-		//
-		// a list of property we should inherit...
-		//
-		inheritingProperties: {
-			"border-collapse"       : true,
-			"border-spacing"        : true,
-			"caption-side"          : true,
-			"color"                 : true,
-			"cursor"                : true,
-			"direction"             : true,
-			"empty-cells"           : true,
-			"font-family"           : true,
-			"font-size"             : true,
-			"font-style"            : true,
-			"font-variant"          : true,
-			"font-weight"           : true,
-			"font"                  : true,
-			"letter-spacing"        : true,
-			"line-height"           : true,
-			"list-style-image"      : true,
-			"list-style-position"   : true,
-			"list-style-type"       : true,
-			"list-style"            : true,
-			"orphans"               : true,
-			"quotes"                : true,
-			"text-align"            : true,
-			"text-indent"           : true,
-			"text-transform"        : true,
-			"visibility"            : true,
-			"white-space"           : true,
-			"widows"                : true,
-			"word-break"            : true,
-			"word-spacing"          : true,
-			"word-wrap"             : true,
-			__proto__               : null,
-		},
-		
-		//
-		// returns the default style for a tag
-		//
-		defaultStylesForTag: Object.create ? Object.create(null) : {},
-		getDefaultStyleForTag: function getDefaultStyleForTag(tagName) {
-			
-			// get result from cache
-			var result = this.defaultStylesForTag[tagName];
-			if(result) return result;
-			
-			// create dummy virtual element
-			var element = document.createElement(tagName);
-			var style = this.defaultStylesForTag[tagName] = getComputedStyle(element);
-			if(style.display) return style;
-			
-			// webkit fix: insert the dummy element anywhere (head -> display:none)
-			document.head.insertBefore(element, document.head.firstChild);
-			return style;
-		},
-		
-		// 
-		// returns the specified style of an element. 
-		// REMARK: may or may not unwrap "inherit" and "initial" depending on implementation
-		// REMARK: giving "matchedRules" as a parameter allow you to mutualize the "findAllMatching" rules calls
-		// 
-		getSpecifiedStyle: function getSpecifiedStyle(element, cssPropertyName, matchedRules) {
-			
-			// hook for css regions
-			var fragmentSource;
-			if(fragmentSource=element.getAttribute('data-css-regions-fragment-of')) {
-				fragmentSource = document.querySelector('[data-css-regions-fragment-source="'+fragmentSource+'"]');
-				if(fragmentSource) return cssCascade.getSpecifiedStyle(fragmentSource, cssPropertyName);
-			}
-			
-			// give IE a thumbs up for this!
-			if(element.currentStyle && !window.opera) {
-				
-				// ask IE to manage the style himself...
-				var bestValue = element.myStyle[cssPropertyName] || element.currentStyle[cssPropertyName];
-				
-				// return a parsed representation of the value
-				return cssSyntax.parseAListOfComponentValues(bestValue);
-				
-			} else {
-				
-				// TODO: support the "initial" and "inherit" things?
-				
-				// first, let's try inline style as it's fast and generally accurate
-				// TODO: what if important rules override that?
-				try {
-					if(bestValue = element.style.getPropertyValue(cssPropertyName) || element.myStyle[cssPropertyName]) {
-						return cssSyntax.parseAListOfComponentValues(bestValue);
-					}
-				} catch(ex) {}
-				
-				// find all relevant style rules
-				var isBestImportant=false; var bestPriority = 0; var bestValue = new cssSyntax.TokenList();
-				var rules = matchedRules || (
-					cssPropertyName in cssCascade.monitoredProperties
-					? element.myMatchedRules || []
-					: cssCascade.findAllMatchingRules(element)
-				);
-				
-				var visit = function(rules) {
-					
-					for(var i=rules.length; i--; ) {
-						
-						// media queries hook
-						if(rules[i].disabled) continue;
-						
-						// find a relevant declaration
-						if(rules[i] instanceof cssSyntax.StyleRule) {
-							var decls = rules[i].getDeclarations();
-							for(var j=decls.length-1; j>=0; j--) {
-								if(decls[j].type=="DECLARATION") {
-									if(decls[j].name==cssPropertyName) {
-										// only works if selectors containing a "," are deduplicated
-										var currentPriority = cssCascade.computeSelectorPriorityOf(rules[i].selector);
-										
-										if(isBestImportant) {
-											// only an important declaration can beat another important declaration
-											if(decls[j].important) {
-												if(currentPriority >= bestPriority) {
-													bestPriority = currentPriority;
-													bestValue = decls[j].value;
-												}
-											}
-										} else {
-											// an important declaration beats any non-important declaration
-											if(decls[j].important) {
-												isBestImportant = true;
-												bestPriority = currentPriority;
-												bestValue = decls[j].value;
-											} else {
-												// the selector priority has to be higher otherwise
-												if(currentPriority >= bestPriority) {
-													bestPriority = currentPriority;
-													bestValue = decls[j].value;
-												}
-											}
-										}
-									}
-								}
-							}
-						} else if((rules[i] instanceof cssSyntax.AtRule) && (rules[i].name=="media")) {
-							
-							// visit them
-							visit(rules[i].toStylesheet())
-							
-						}
-						
-					}
-					
-				}
-				visit(rules);
-				
-				// return our best guess...
-				return bestValue||null;
-				
-			}
-			
-		},
-		
-		
-		//
-		// start monitoring a new stylesheet
-		// (should usually not be used because stylesheets load automatically)
-		//
-		stylesheets: [],
-		loadStyleSheet: function loadStyleSheet(cssText,i) {
-			
-			// load in order
-			
-			// parse the stylesheet content
-			var rules = cssSyntax.parse(cssText).value;
-			
-			// add the stylesheet into the object model
-			if(typeof(i)!=="undefined") { cssCascade.stylesheets[i]=rules; } 
-			else { i=cssCascade.stylesheets.push(rules);}
-			
-			// make sure to monitor the required rules
-			cssCascade.startMonitoringStylesheet(rules)
-			
-		},
-		
-		//
-		// start monitoring a new stylesheet
-		// (should usually not be used because stylesheets load automatically)
-		//
-		loadStyleSheetTag: function loadStyleSheetTag(stylesheet,i) {
-			
-			if(stylesheet.hasAttribute('data-css-polyfilled')) {
-				return;
-			}
-			
-			if(stylesheet.tagName=='LINK') {
-				
-				// oh, no, we have to download it...
-				try {
-					
-					// dummy value in-between
-					cssCascade.stylesheets[i] = new cssSyntax.TokenList();
-					
-					//
-					var xhr = new XMLHttpRequest(); xhr.href = stylesheet.href;
-					xhr.open('GET',stylesheet.href,true); xhr.ruleIndex = i; 
-					xhr.onreadystatechange = function() {
-						if(this.readyState==4) { 
-							
-							// status 0 is a webkit bug for local files
-							if(this.status==200||this.status==0) {
-								cssCascade.loadStyleSheet(this.responseText,this.ruleIndex)
-							} else {
-								cssConsole.log("css-cascade polyfill failled to load: " + this.href);
-							}
-						}
-					};
-					xhr.send();
-					
-				} catch(ex) {
-					cssConsole.log("css-cascade polyfill failled to load: " + stylesheet.href);
-				}
-				
-			} else {
-				
-				// oh, cool, we just have to parse the content!
-				cssCascade.loadStyleSheet(stylesheet.textContent,i);
-				
-			}
-			
-			// mark the stylesheet as ok
-			stylesheet.setAttribute('data-css-polyfilled',true);
-			
-		},
-		
-		//
-		// calling this function will load all currently existing stylesheets in the document
-		// (should usually not be used because stylesheets load automatically)
-		//
-		selectorForStylesheets: "style:not([data-no-css-polyfill]):not([data-css-polyfilled]), link[rel=stylesheet]:not([data-no-css-polyfill]):not([data-css-polyfilled])",
-		loadAllStyleSheets: function loadAllStyleSheets() {
-			
-			// for all stylesheets in the <head> tag...
-			var head = document.head || document.documentElement;
-			var stylesheets = head.querySelectorAll(cssCascade.selectorForStylesheets);
-			
-			var intialLength = this.stylesheets.length;
-			this.stylesheets.length += stylesheets.length
-			
-			// for all of them...
-			for(var i = stylesheets.length; i--;) {
-				
-				// 
-				// load the stylesheet
-				// 
-				var stylesheet = stylesheets[i]; 
-				cssCascade.loadStyleSheetTag(stylesheet,intialLength+i)
-				
-			}
-		},
-		
-		//
-		// this is where we store event handlers for monitored properties
-		//
-		monitoredProperties: Object.create ? Object.create(null) : {},
-		monitoredPropertiesHandler: {
-			onupdate: function(element, rule) {
-				
-				// we need to find all regexps that matches
-				var mps = cssCascade.monitoredProperties;
-				var decls = rule.getDeclarations();
-				for(var j=decls.length-1; j>=0; j--) {
-					if(decls[j].type=="DECLARATION") {
-						if(decls[j].name in mps) {
-							
-							// call all handlers waiting for this
-							var hs = mps[decls[j].name];
-							for(var hi=hs.length; hi--;) {
-								hs[hi].onupdate(element,rule);
-							};
-							
-							// don't call twice
-							break;
-							
-						}
-					}
-				}
-				
-			}
-		},
-		
-		//
-		// add an handler to some properties (aka fire when their value *MAY* be affected)
-		// REMARK: because this event does not promise the value changed, you may want to figure it out before relayouting
-		//
-		startMonitoringProperties: function startMonitoringProperties(properties, handler) {
-			
-			for(var i=properties.length; i--; ) {
-				var property = properties[i];
-				var handlers = (
-					cssCascade.monitoredProperties[property]
-					|| (cssCascade.monitoredProperties[property] = [])
-				);
-				handlers.push(handler)
-			}
-			
-			for(var s=0; s<cssCascade.stylesheets.length; s++) {
-				var currentStylesheet = cssCascade.stylesheets[s];
-				cssCascade.startMonitoringStylesheet(currentStylesheet);
-			}
-			
-		},
-		
-		//
-		// calling this function will detect monitored rules in the stylesheet
-		// (should usually not be used because stylesheets load automatically)
-		//
-		startMonitoringStylesheet: function startMonitoringStylesheet(rules) {
-			for(var i=0; i<rules.length; i++) {
-				
-				// only consider style rules
-				if(rules[i] instanceof cssSyntax.StyleRule) {
-					
-					// try to see if the current rule is worth monitoring
-					if(rules[i].isMonitored) continue;
-					
-					// for that, let's see if we can find a declaration we should watch
-					var decls = rules[i].getDeclarations();
-					for(var j=decls.length-1; j>=0; j--) {
-						if(decls[j].type=="DECLARATION") {
-							if(decls[j].name in cssCascade.monitoredProperties) {
-								
-								// if we found some, start monitoring
-								cssCascade.startMonitoringRule(rules[i]);
-								break;
-								
-							}
-						}
-					}
-					
-				} else if(rules[i] instanceof cssSyntax.AtRule) {
-					
-					// handle @media
-					if(rules[i].name == "media" && window.matchMedia) {
-						
-						cssCascade.startMonitoringMedia(rules[i]);
-						
-					}
-					
-				}
-				
-			}
-		},
-		
-		//
-		// calling this function will detect media query updates and fire events accordingly
-		// (should usually not be used because stylesheets load automatically)
-		//
-		startMonitoringMedia: function startMonitoringMedia(atrule) {
-			try {
-				
-				var media = window.matchMedia(atrule.prelude.toCSSString());
-				
-				// update all the rules when needed
-				var rules = atrule.toStylesheet().value;
-				cssCascade.updateMedia(rules, !media.matches, false);
-				media.addListener(
-					function(newMedia) { cssCascade.updateMedia(rules, !newMedia.matches, true); }
-				);
-				
-				// it seems I like taking risks...
-				cssCascade.startMonitoringStylesheet(rules);
-				
-			} catch(ex) {
-				setImmediate(function() { throw ex; })
-			}
-		},
-		
-		//
-		// define what happens when a media query status changes
-		//
-		updateMedia: function(rules,disabled,update) {
-			for(var i=rules.length; i--; ) {
-				rules[i].disabled = disabled;
-				// TODO: should probably get handled by a setter on the rule...
-				var sr = rules[i].subRules;
-				if(sr) {
-					for(var j=sr.length; j--; ) {
-						sr[j].disabled = disabled;
-					}
-				}
-			}
-			
-			// in case of update, all elements matching the selector went potentially updated...
-			if(update) {
-				for(var i=rules.length; i--; ) {
-					var els = document.querySelectorAll(rules[i].selector.toCSSString());
-					for(var j=els.length; j--; ) {
-						cssCascade.monitoredPropertiesHandler.onupdate(els[j],rules[i]);
-					}
-				}
-			}
-		},
-		
-		// 
-		// splits a rule if it has multiple selectors
-		// 
-		splitRule: function splitRule(rule) {
-			
-			// create an array for all the subrules
-			var rules = [];
-			
-			// fill the array
-			var currentRule = new cssSyntax.StyleRule(); currentRule.disabled=rule.disabled;
-			for(var i=0; i<rule.selector.length; i++) {
-				if(rule.selector[i] instanceof cssSyntax.DelimToken && rule.selector[i].value==",") {
-					currentRule.value = rule.value; rules.push(currentRule);
-					currentRule = new cssSyntax.StyleRule(); currentRule.disabled=rule.disabled;
-				} else {
-					currentRule.selector.push(rule.selector[i])
-				}
-			}
-			currentRule.value = rule.value; rules.push(currentRule);
-			
-			// save the result of the split as subrules
-			return rule.subRules = rules;
-			
-		},
-		
-		// 
-		// ask the css-selector implementation to notify changes for the rules
-		// 
-		startMonitoringRule: function startMonitoringRule(rule) {
-			
-			// avoid monitoring rules twice
-			if(!rule.isMonitored) { rule.isMonitored=true } else { return; }
-			
-			// split the rule if it has multiple selectors
-			var rules = rule.subRules || cssCascade.splitRule(rule);
-			
-			// monitor the rules
-			for(var i=0; i<rules.length; i++) {
-				rule = rules[i];
-				querySelectorLive(rule.selector.toCSSString(), {
-					onadded: function(e) {
-						
-						// add the rule to the matching list of this element
-						(e.myMatchedRules = e.myMatchedRules || []).unshift(rule); // TODO: does not respect priority order
-						
-						// generate an update event
-						cssCascade.monitoredPropertiesHandler.onupdate(e, rule);
-						
-					},
-					onremoved: function(e) {
-						
-						// remove the rule from the matching list of this element
-						if(e.myMatchedRules) e.myMatchedRules.splice(e.myMatchedRules.indexOf(rule), 1);
-						
-						// generate an update event
-						cssCascade.monitoredPropertiesHandler.onupdate(e, rule);
-						
-					}
-				});
-			}
-			
-		},
-		
-		//
-		// converts a css property name to a javascript name
-		//
-		toCamelCase: function toCamelCase(variable) { 
-			return variable.replace(
-				/-([a-z])/g, 
-				function(str,letter) { 
-					return letter.toUpperCase();
-				}
-			);
-		},
-		
-		//
-		// add some magic code to support properties on the style interface
-		//
-		polyfillStyleInterface: function(cssPropertyName) {
-			
-			var prop = {
-				
-				get: function() {
-					
-					// check we know which element we work on
-					try { if(!this.parentElement) throw new Error("Please use the anHTMLElement.myStyle property to get polyfilled properties") }
-					catch(ex) { setImmediate(function() { throw ex; }); return ''; }
-					
-					try { 
-						// non-computed style: return the local style of the element
-						this.clip = (this.clip===undefined?'':this.clip);
-						return this.parentElement.getAttribute('data-style-'+cssPropertyName);
-					} catch (ex) {
-						// computed style: return the specified style of the element
-						var value = cssCascade.getSpecifiedStyle(this.parentElement, cssPropertyName, undefined, true);
-						return value && value.length>0 ? value.toCSSString() : '';
-					}
-					
-				},
-				
-				set: function(v) {
-					
-					// check that the style is writable
-					this.clip = (this.clip===undefined?'':this.clip);
-
-					// check we know which element we work on
-					try { if(!this.parentElement) throw new Error("Please use the anHTMLElement.myStyle property to set polyfilled properties") }
-					catch(ex) { setImmediate(function() { throw ex; }); return; }
-					
-					// modify the local style of the element
-					if(this.parentElement.getAttribute('data-style-'+cssPropertyName) != v) {
-						this.parentElement.setAttribute('data-style-'+cssPropertyName,v);
-					}
-					
-				}
-				
-			};
-			
-			var styleProtos = [];
-			try { styleProtos.push(Object.getPrototypeOf(document.documentElement.style) || CSSStyleDeclaration); } catch (ex) {}
-			//try { styleProtos.push(Object.getPrototypeOf(getComputedStyle(document.documentElement))); } catch (ex) {}
-			//try { styleProtos.push(Object.getPrototypeOf(document.documentElement.currentStyle)); } catch (ex) {}
-			//try { styleProtos.push(Object.getPrototypeOf(document.documentElement.runtimeStyle)); } catch (ex) {}
-			//try { styleProtos.push(Object.getPrototypeOf(document.documentElement.specifiedStyle)); } catch (ex) {}
-			//try { styleProtos.push(Object.getPrototypeOf(document.documentElement.cascadedStyle)); } catch (ex) {}
-			//try { styleProtos.push(Object.getPrototypeOf(document.documentElement.usedStyle)); } catch (ex) {}
-			
-			for(var i = styleProtos.length; i--;) {
-				var styleProto = styleProtos[i];
-				Object.defineProperty(styleProto,cssPropertyName,prop);
-				Object.defineProperty(styleProto,cssCascade.toCamelCase(cssPropertyName),prop);
-			}
-			cssCascade.startMonitoringRule(cssSyntax.parse('[style*="'+cssPropertyName+'"]{'+cssPropertyName+':attr(style)}').value[0]);
-			cssCascade.startMonitoringRule(cssSyntax.parse('[data-style-'+cssPropertyName+']{'+cssPropertyName+':attr(style)}').value[0]);
-			
-			// add to the list of polyfilled properties...
-			cssCascade.getAllCSSProperties().push(cssPropertyName);
-			cssCascade.computationUnsafeProperties[cssPropertyName] = true;
-			
-		}
-		
-	};
-
-	//
-	// polyfill for browsers not support CSSStyleDeclaration.parentElement (all of them right now)
-	//
-	domEvents.EventTarget.implementsIn(cssCascade);
-	Object.defineProperty(Element.prototype,'myStyle',{
-		get: function() {
-			var style = this.style; 
-			if(!style.parentElement) style.parentElement = this;
-			return style;
-		}
-	});
-
-	//
-	// load all stylesheets at the time the script is loaded
-	// then do it again when all stylesheets are downloaded
-	// and again if some style tag is added to the DOM
-	//
-	if(!("no_auto_stylesheet_detection" in window)) {
-		
-		cssCascade.loadAllStyleSheets();
-		document.addEventListener("DOMContentLoaded", function() {
-			cssCascade.loadAllStyleSheets();
-			querySelectorLive(
-				cssCascade.selectorForStylesheets,
-				{
-					onadded: function(e) {
-						// TODO: respect DOM order?
-						cssCascade.loadStyleSheetTag(e);
-						cssCascade.dispatchEvent('stylesheetadded');
-					}
-				}
-			)
-		})
-	}
-	
-	return cssCascade;
-
-})(window, document);
-require.define('src/core/css-cascade.js');
-
-////////////////////////////////////////
-
-//
-// The CSS Style module attempts to provide helpers to deal with Style Declarations and elements
-// [0] http://lists.w3.org/Archives/Public/www-style/2013Sep/0283.html
-//
-module.exports = (function(window, document) { "use strict";
-
-	function usedStyleOf(element) {
-		var style = element.usedStyle || getComputedStyle(element);
-		if(!style.parentElement) { style.parentElement = element; }
-		return style;
-	}
-	
-	function currentStyleOf(element) {
-		var style = element.cascadedStyle || element.specifiedStyle || element.currentStyle || getComputedStyle(element); // TODO: check CSSOM spec for real name
-		if(!style.parentElement) { style.parentElement = element; }
-		return style;
-	}
-	
-	function styleOf(element) {
-		var style = element.style;
-		if(!style.parentElement) { style.parentElement = element; }
-		return style;
-	}
-	
-	function runtimeStyleOf(element) {
-		var style = /*element.runtimeStyle || */element.style;
-		if(!style.parentElement) { style.parentElement = element; }
-		return style;
-	}
-	
-	function enforceStyle(element, property, value) {
-		
-		var propertyBackup = null;
-		var usedValue = usedStyleOf(element).getPropertyValue(property);
-		if(value instanceof Array) {
-			if(value.indexOf(usedValue) >= 0) return null;
-			value = ''+value[0];
-		} else {
-			value = ''+value;
-		}
-		
-		if(usedValue != value) {
-			var style = runtimeStyleOf(element);
-			propertyBackup = { 
-				value:     style.getPropertyValue(property),
-				priority:  style.getPropertyPriority(property),
-				property:  property
-			};
-			style.setProperty(property, "", ""); // reset [0]
-			style.setProperty(property, "" + value, "important");
-		}
-		
-		return propertyBackup;
-		
-	}
-	
-	function enforceStyles(element, propertyValues, backups) {
-		var backups = backups || [];
-		for(var property in propertyValues) { if(propertyValues.hasOwnProperty(key)) {
-			var currentBackup = enforceStyle(element, property, propertyValues[property]);
-			if(currentBackup) { backups.push(currentBackup) }
-		}}
-		return backups;
-	}
-
-	function restoreStyle(element, backup) {
-
-		if(backup) {
-		
-			// get the element runtime style
-			var style = runtimeStyleOf(element);
-			
-			// reset [0]
-			style.setProperty(backup.property, "", "");
-			
-			// restore
-			if(backup.value) {
-				style.setProperty(backup.property, backup.value, "");
-				style.setProperty(backup.property, backup.value, backup.priority);
-			}
-			
-		}
-
-	}
-	
-	function restoreStyles(element, backups) {
-		if(!backups || !(backups.length > 0)) { return; }
-		for(var i=backups.length; i--;) {
-			restoreStyle(element, backups[i]);
-		}
-	}
-	
-	var cssStyle = {
-		styleOf: styleOf,
-		usedStyleOf: usedStyleOf,
-		currentStyleOf: currentStyleOf,
-		runtimeStyleOf: runtimeStyleOf,
-		enforceStyle: enforceStyle,
-		enforceStyles: enforceStyles,
-		restoreStyle: restoreStyle,
-		restoreStyles: restoreStyles,
-	};
-	
-	return cssStyle;
-
-})(window);
-require.define('src/core/css-style.js');
-
-////////////////////////////////////////
-
-module.exports = (function(window, document) { "use strict";
-	
-	var VSS_COUNT = 0;
-	function VirtualStylesheetFactory() {
-		var This = this || Object.create(VirtualStylesheet.prototype);
-		
-		// create the style sheet
-		var styleElement = document.createElement('style');
-		styleElement.id = "virtual-stylesheet-" + (VSS_COUNT++);
-		styleElement.setAttribute('data-no-css-polyfill', 'true');
-		styleElement.appendChild(document.createTextNode(''));
-		document.querySelector(':root > head').appendChild(styleElement);
-		
-		// grab its stylesheet object
-		var ss = styleElement.sheet;
-		if(!ss.cssRules) ss.cssRules = ss.rules;
-		ss.removeRule = ss.removeRule || function(i) {
-			return ss.deleteRule(i);
-		}
-		ss.addRule = ss.addRule || function(s,d,i) {
-			var rule = s+'{'+d+'}'
-			var index = typeof(i)=='number' ? i : ss.cssRules.length;
-			return ss.insertRule(rule, index);
-		}
-		
-		// create the mapping table
-		var rules = [];
-		
-		// add the factory
-		
-		This.stylesheets = Object.create(null);
-		This.createStyleSheet = function(name) {
-			return This.stylesheets[name] || (This.stylesheets[name] = new VirtualStylesheet(this, name));
-		}
-		
-		// add the methods
-		
-		This.addRule = function(selector, declarations, stylesheet, enabled) {
-			
-			// convert selector & declarations to a non-empty string
-			selector = '' + selector + ' ';
-			declarations = '' + declarations + ' ';
-			
-			// add the rule to the known rules
-			rules.push({ stylesheet: stylesheet, selector: selector, declarations: declarations, enabled: enabled });
-			
-			// add the rule to the enabled stylesheet, if needed
-			if(enabled) {
-				ss.addRule(selector, declarations);
-			}
-			
-		}
-		
-		This.disableAllRules = function(stylesheet) {
-			var ssIndex = ss.cssRules.length;
-			for(var i = rules.length; i--;) { var rule = rules[i];
-				if(rule.enabled) {
-					ssIndex--;
-					if(rule.stylesheet == stylesheet) {
-						ss.removeRule(ssIndex);
-						rule.enabled = false;
-					}
-				}
-			}
-		}
-		
-		This.enableAllRules = function(stylesheet) {
-			var ssIndex = 0;
-			for(var i = 0; i<rules.length; i++) { var rule = rules[i];
-				if(rule.enabled) {
-					ssIndex++;
-				} else {
-					if(rule.stylesheet == stylesheet) {
-						ss.addRule(rule.selector, rule.declarations, ssIndex);
-						rule.enabled = true;
-						ssIndex++;
-					}
-				}
-			}
-		}
-		
-		This.deleteAllRules = function(stylesheet) {
-			var ssIndex = ss.cssRules.length;
-			for(var i = rules.length; i--;) { var rule = rules[i];
-				if(rule.enabled) {
-					ssIndex--;
-					if(rule.stylesheet == stylesheet) {
-						ss.removeRule(ssIndex);
-						rules.splice(i, 1);
-					}
-				}
-			}
-		}
-		
-	}
-	
-	function VirtualStylesheet(factory, name) {
-		this.factory = factory;
-		this.name = name;
-		this.enabled = true;
-	}
-	
-	VirtualStylesheet.prototype.addRule = function(selector, declarations) {
-		this.factory.addRule(selector, declarations, this.name, this.enabled);
-	}
-	
-	VirtualStylesheet.prototype.set = function(element, properties) {
-		
-		// give an id to the element
-		if(!element.id) { element.id = element.uniqueID; }
-	
-		// compute the css rule to add
-		var selector = "#"+element.id;
-		var rule = ""; for(var property in properties) {
-			if(properties.hasOwnProperty(property)) {
-				rule += property + ": " + properties[property] + " !important; ";
-			}
-		}
-		
-		// and then add it
-		this.addRule(selector, rule);
-		
-	}
-	
-	VirtualStylesheet.prototype.enable = function() {
-		this.factory.enableAllRules(this.name); this.enabled=true;
-	}
-	
-	VirtualStylesheet.prototype.disable = function() {
-		this.factory.disableAllRules(this.name); this.enabled=false;
-	}
-	
-	VirtualStylesheet.prototype.clear = function() {
-		this.factory.deleteAllRules(this.name);
-	}
-	
-	VirtualStylesheet.prototype.revoke = function() {
-		this.clear();
-	}
-	
-	VirtualStylesheetFactory.VirtualStylesheet = VirtualStylesheet;
-	VirtualStylesheetFactory.VirtualStylesheetFactory = VirtualStylesheetFactory;
-	return VirtualStylesheetFactory;
-	
-})(window, document)
-require.define('src/core/css-virtual-stylesheet-factory.js');
-
-////////////////////////////////////////
-
-void function() {
-	if(!('uniqueID' in document.documentElement)) {
-		var uniqueID_counter = 0;
-		Object.defineProperty(Element.prototype, 'uniqueID', {get: function() {
-			if(this.id) {
-				return(this.id);
-			} else {
-				return(this.id = ("EL__"+(++uniqueID_counter)+"__"));
-			}
-		}});
-	}
-}();
-require.define('src/core/polyfill-dom-uniqueID.js');
-
-////////////////////////////////////////
-
-module.exports = (function(window, document) {
-	
-	// import dependencies
-	var cssStyle  = require('src/core/css-style.js'),
-	    usedStyleOf     = cssStyle.usedStyleOf,
-	    currentStyleOf  = cssStyle.currentStyleOf,
-	    enforceStyle    = cssStyle.enforceStyle,
-	    restoreStyle    = cssStyle.restoreStyle;
+module.exports = (function() {
 	
 	// define the module
 	var cssSizing = {
 		
-		absoluteMinWidthOf: function(element) {
+		minWidthOf: function*(element) {
+		
+			//
+			// make the parent an infinite relative container (if necessary)
+			//
+			var fragment = yield element.layoutNextFragment();
+			
+			//
+			// return the result
+			//
+			return fragment.inlineSize;
+		},
+		
+		maxWidthOf: function*(element) {
 
-			//
-			// make the parent a relative container (if necessary)
-			//
-			var parentPositionBackup = enforceStyle(element.parentNode, "position", "relative");
-			
-			//
-			// remove the element from the flow (if necessary)
-			//
-			var positionBackup = enforceStyle(element, "position", "absolute");
-			
-			//
-			// put impossible sizing constraints to the element
-			//
-			var widthBackup = enforceStyle(element, "width", "0px");
-			var minWidthBackup = enforceStyle(element, "min-width", "0px");
-			
-			//
-			// see what size is finally being used
-			//
-			var result = element.offsetWidth;
-			
-			//
-			// restore styling where needed
-			//
-			restoreStyle(element, minWidthBackup);
-			restoreStyle(element, widthBackup);
-			restoreStyle(element, positionBackup);
-			restoreStyle(element.parentNode, parentPositionBackup);
-			
-			//
-			// return the result
-			//
-			return result;
-				
-		},
-		
-		minWidthOf: function(element) {
-		
-			//
-			// make the parent an infinite relative container (if necessary)
-			//
-			var parentPositionBackup = enforceStyle(element.parentNode, "position", "relative");
-			var parentWidthBackup = enforceStyle(element.parentNode, "width", "0px");
-			var parentMinWidthBackup = enforceStyle(element.parentNode, "min-width", "0px");
-			var parentMaxWidthBackup = enforceStyle(element.parentNode, "max-width", "0px");
-			
-			//
-			// remove the element from the flow (if necessary)
-			//
-			var positionBackup = enforceStyle(element, "position", "absolute");
-			
-			//
-			// put impossible sizing constraints to the element
-			//
-			var widthBackup = enforceStyle(element, "width", "auto");
-			
-			//
-			// see what size is finally being used
-			//
-			var result = element.offsetWidth;
-			
-			//
-			// restore styling where needed
-			//
-			restoreStyle(element, widthBackup);
-			restoreStyle(element, positionBackup);
-			restoreStyle(element.parentNode, parentWidthBackup);
-			restoreStyle(element.parentNode, parentMaxWidthBackup);
-			restoreStyle(element.parentNode, parentMinWidthBackup);
-			restoreStyle(element.parentNode, parentPositionBackup);
-			
-			//
-			// return the result
-			//
-			return result;
-		},
-		
-		maxWidthOf: function(element) {
+			var infinity = 9999999.0;
+			return infinity; // TODO: remove this when Ian fixes Blink
 		
 			//
 			// make the parent a relative container (if necessary)
 			//
-			var parentPositionBackup = enforceStyle(element.parentNode, "position", "relative");
-			
-			//
-			// remove the element from the flow (if necessary)
-			//
-			var positionBackup = enforceStyle(element, "position", "absolute");
-			
-			//
-			// put impossible sizing constraints to the element
-			//
-			var widthBackup = enforceStyle(element, "width", "auto");
-			
-			//
-			// see what size is finally being used
-			//
-			var result = element.offsetWidth;
-					
-			//
-			// restore styling where needed
-			//
-			restoreStyle(element, widthBackup);
-			restoreStyle(element, positionBackup);
-			restoreStyle(element.parentNode, parentPositionBackup);
+			var fragment = yield element.layoutNextFragment({ availableInlineSize: infinity });
 			
 			//
 			// return the result
 			//
-			return result;
+			return fragment.inlineSize;
 		},
-		
-		absoluteMaxWidthOf: function(element) {
-		
-			//
-			// make the parent an infinite relative container (if necessary)
-			//
-			var parentPositionBackup = enforceStyle(element.parentNode, "position", "relative");
-			var parentWidthBackup = enforceStyle(element.parentNode, "width", "9999px");
-			var parentMinWidthBackup = enforceStyle(element.parentNode, "min-width", "9999px");
-			
-			//
-			// remove the element from the flow (if necessary)
-			//
-			var positionBackup = enforceStyle(element, "position", "absolute");
-			
-			//
-			// put impossible sizing constraints to the element
-			//
-			var widthBackup = enforceStyle(element, "width", "auto");
-			
-			//
-			// see what size is finally being used
-			//
-			var result = element.offsetWidth;
-			
-			//
-			// restore styling where needed
-			//
-			restoreStyle(element, widthBackup);
-			restoreStyle(element, positionBackup);
-			restoreStyle(element.parentNode, parentWidthBackup);
-			restoreStyle(element.parentNode, parentMinWidthBackup);
-			restoreStyle(element.parentNode, parentPositionBackup);
-			
-			//
-			// return the result
-			//
-			return result;
-		},
-		
+
 	};
 	
 	return cssSizing;
 	
-})(window, document)
+})();
 require.define('src/core/css-sizing.js');
 
 ////////////////////////////////////////
@@ -3517,7 +1391,7 @@ require.define('src/core/css-sizing.js');
 //
 // The Box module defines algorithms for dealing with css boxes
 //
-module.exports = (function(window, document) {
+module.exports = (function() {
 	
 	// Original code licensed by Adobe Systems Incorporated under the Apache License 2.0. 
 	// https://github.com/adobe-webplatform/brackets-css-shapes-editor/blob/master/thirdparty/CSSShapesEditor.js#L442
@@ -3592,7 +1466,7 @@ module.exports = (function(window, document) {
 	
 	return cssBox;
 	
-})(window, document);
+})();
 require.define('src/core/css-box.js');
 
 ////////////////////////////////////////
@@ -3600,7 +1474,7 @@ require.define('src/core/css-box.js');
 //
 // The CSS Units module is handling conversions between units
 //
-module.exports = (function(window, document) {
+module.exports = (function() {
 	
 	// import dependencies
 	var getBox = require('src/core/css-box.js').getBox;
@@ -3726,44 +1600,25 @@ module.exports = (function(window, document) {
 	
 	return cssUnits;
 
-})(window, document);
+})();
 require.define('src/core/css-units.js');
 
 ////////////////////////////////////////
 
-module.exports = (function(window, document) { "use strict";
+module.exports = (function() { "use strict";
 	
 	// import dependencies
 	var cssSyntax = require('src/core/css-syntax.js');
 	
-	var cssStyle  = require('src/core/css-style.js'),
-	    usedStyleOf     = cssStyle.usedStyleOf,
-	    currentStyleOf  = cssStyle.currentStyleOf,
-	    enforceStyle    = cssStyle.enforceStyle,
-	    restoreStyle    = cssStyle.restoreStyle;
-		
-	var VirtualStylesheetFactory = require('src/core/css-virtual-stylesheet-factory.js');
-	
-	require('src/core/polyfill-dom-uniqueID.js');
-	require('src/core/polyfill-dom-requestAnimationFrame.js');
-	
-	var virtualStylesheetFactory = new VirtualStylesheetFactory();
-	
-	var createRuntimeStyle = function(reason, element) {
-		
-		// expand the reason
-		if(element) {
-			reason = (element.id || element.uniqueID) + '-' + reason;
-		}
-		
-		// return a virtual stylesheet
-		return virtualStylesheetFactory.createStyleSheet(reason);
-		
-	}
-	
 	var cssSizing = require('src/core/css-sizing.js');
 	
 	var cssUnits = require('src/core/css-units.js');
+
+	StylePropertyMapReadOnly.prototype.getPropertyValue=function(propertyName) {
+		var value = this.get(propertyName);
+		if(value === null) return ""
+		return value.toString();
+	}
 	
 	// define the module
 	var LOCATE_AUTO = 0;
@@ -3925,19 +1780,13 @@ module.exports = (function(window, document) { "use strict";
 		updateFromElement: function() {
 			
 			var element = this.element;
-			var usedStyle = usedStyleOf(element);
-			var style = currentStyleOf(element);
-			var getStyle = function(prop) {
-				var value = style[prop];
-				if(typeof(value)=="undefined") { return ""; }
-				return value;
-			}
+			var usedStyle = element.styleMap;
 			
 			this.reset(); 
 			this.buggy = false;
 			
 			// compute order property
-			this.order = parseInt(style['order'])|0;
+			this.order = parseInt(usedStyle.getPropertyValue('order'))|0;
 			
 			// compute size
 			this.minWidth = cssSizing.minWidthOf(element);
@@ -3951,8 +1800,8 @@ module.exports = (function(window, document) { "use strict";
 			this.vBorders = parseInt(usedStyle.getPropertyValue('border-top-width')) + parseInt(usedStyle.getPropertyValue('border-bottom-width'));
 			
 			// locate x and y lines together
-			if(style["grid-area"]) {
-				var parts = getStyle("grid-area").split('/');
+			if(usedStyle.getPropertyValue("--grid-area")) {
+				var parts = usedStyle.getPropertyValue("--grid-area").split('/');
 				var is_ident = /^\s*([a-z][-_a-z0-9]*)\s*$/i;
 				var row_start = parts[0] || 'auto';
 				var col_start = parts[1] || (is_ident.test(row_start) ? row_start : 'auto');
@@ -3963,18 +1812,18 @@ module.exports = (function(window, document) { "use strict";
 			}
 			
 			// locate x lines
-			if(style["grid-column"] || style["grid-column-start"] || style["grid-column-end"]) {
-				var parts = getStyle("grid-column").split('/');
-				var start = getStyle("grid-column-start") || parts[0] || 'auto';
-				var end   = getStyle("grid-column-end") || parts[1] || parts[0] || start;
+			if(usedStyle.getPropertyValue("--grid-column") || usedStyle.getPropertyValue("--grid-column-start") || usedStyle.getPropertyValue("--grid-column-end")) {
+				var parts = usedStyle.getPropertyValue("--grid-column").split('/');
+				var start = usedStyle.getPropertyValue("--grid-column-start") || parts[0] || 'auto';
+				var end   = usedStyle.getPropertyValue("--grid-column-end") || parts[1] || parts[0] || start;
 				this.parseLocationInstructions(this.specifiedXStart, this.specifiedXEnd, start + " / " + end);
 			}
 			
 			// locate y lines
-			if(style["grid-row"] || style["grid-row-start"] || style["grid-row-end"]) {
-				var parts = getStyle("grid-row").split('/');
-				var start = getStyle("grid-row-start") || parts[0];
-				var end   = getStyle("grid-row-end") || parts[1] || parts[0];
+			if(usedStyle.getPropertyValue("--grid-row") || usedStyle.getPropertyValue("--grid-row-start") || usedStyle.getPropertyValue("--grid-row-end")) {
+				var parts = usedStyle.getPropertyValue("--grid-row").split('/');
+				var start = usedStyle.getPropertyValue("--grid-row-start") || parts[0];
+				var end   = usedStyle.getPropertyValue("--grid-row-end") || parts[1] || parts[0];
 				this.parseLocationInstructions(this.specifiedYStart, this.specifiedYEnd, start + " / " + end);
 			}
 			
@@ -4242,10 +2091,7 @@ module.exports = (function(window, document) { "use strict";
 
 		// reset
 		this.reset();
-		
-		// other fields
-		this.isLayoutScheduled = false;
-		
+				
 	}
 	
 	GridLayout.prototype = {
@@ -4319,18 +2165,12 @@ module.exports = (function(window, document) { "use strict";
 			
 			// add new items
 			this.items.length = 0;
-			var currentItem = this.element.firstElementChild;
-			while(currentItem) {
-				
-				// add a new grid item for the element
-				var newGridItem = new GridItem(currentItem, this);
+			this.items = this.element.children.map(child => {
+				var newGridItem = new cssGrid.GridItem(child, this);
 				newGridItem.updateFromElement();
-				this.items.push(newGridItem);
-				
-				// move to the next element
-				currentItem = currentItem.nextElementSibling;
-			}
-			
+				return newGridItem;
+			});
+
 			// sort them by css order (desc) then by dom order (asc)
 			var sortableItems = this.items.map(function(item, i) { return { item: item, order: item.order, position: i } });
 			sortableItems.sort(function(a,b) { if(a.order==b.order) { return a.position-b.position } else if(a.order>b.order) { return +1 } else { return -1; } });
@@ -4340,14 +2180,14 @@ module.exports = (function(window, document) { "use strict";
 			this.reset();
 			
 			// update its own style
-			var style = usedStyleOf(this.element); var cssText = '';
-			if(cssText=style["grid-template"])         { this.parseGridTemplate(cssText);    }
-			if(cssText=style["grid-template-rows"])    { this.parseRowsTemplate(cssText);    }
-			if(cssText=style["grid-template-columns"]) { this.parseColumnsTemplate(cssText); }
-			if(cssText=style["grid-template-areas"])   { this.parseAreasTemplate(cssText);   }
-			if(cssText=style["grid-auto-rows"]) { this.parseAutoRowsBreadth(cssText); }
-			if(cssText=style["grid-auto-columns"]) { this.parseAutoColumnsBreadth(cssText); }
-			if(cssText=style["grid-auto-flow"]) { // FIXME: should be in a function
+			var usedStyle = this.element.styleMap; var cssText = '';
+			if(cssText=usedStyle.getPropertyValue("--grid-template"))         { this.parseGridTemplate(cssText);    }
+			if(cssText=usedStyle.getPropertyValue("--grid-template-rows"))    { this.parseRowsTemplate(cssText);    }
+			if(cssText=usedStyle.getPropertyValue("--grid-template-columns")) { this.parseColumnsTemplate(cssText); }
+			if(cssText=usedStyle.getPropertyValue("--grid-template-areas"))   { this.parseAreasTemplate(cssText);   }
+			if(cssText=usedStyle.getPropertyValue("--grid-auto-rows")) { this.parseAutoRowsBreadth(cssText); }
+			if(cssText=usedStyle.getPropertyValue("--grid-auto-columns")) { this.parseAutoColumnsBreadth(cssText); }
+			if(cssText=usedStyle.getPropertyValue("--grid-auto-flow")) { // FIXME: should be in a function
 				
 				// FIXME: not a real parse...
 				var tokens = cssText.trim().toLowerCase().split(/\s+/g);
@@ -4371,7 +2211,6 @@ module.exports = (function(window, document) { "use strict";
 				
 			}
 			
-			var usedStyle = style;
 			this.hlPadding = parseInt(usedStyle.getPropertyValue('border-left-width')) + parseInt(usedStyle.getPropertyValue('padding-left'));
 			this.hrPadding = parseInt(usedStyle.getPropertyValue('border-right-width')) + parseInt(usedStyle.getPropertyValue('padding-right'));
 			this.vtPadding = parseInt(usedStyle.getPropertyValue('border-top-width')) + parseInt(usedStyle.getPropertyValue('padding-top'));
@@ -5134,40 +2973,7 @@ module.exports = (function(window, document) { "use strict";
 			
 		},
 		
-		scheduleRelayout: function() {
-			var This = this;
-			if(!This.isLayoutScheduled) {
-				This.isLayoutScheduled = true;
-				requestAnimationFrame(function() {
-					try {
-						var savedScrolls = getScrollStates();
-						This.revokePolyfilledStyle();
-						This.updateFromElement();
-						This.performLayout();
-						This.generatePolyfilledStyle();
-						savedScrolls.forEach(function(d) {
-							d.element.scrollTop = d.top;
-							d.element.scrollLeft = d.left;
-						});
-					} finally {
-						This.isLayoutScheduled = false;
-					}
-				});
-			}
-			//-----------------------------------------------------------
-			function getScrollStates() {
-				var states = [];
-				var element = This.element;
-				while(element = element.parentNode) {
-					if("scrollTop" in element) {
-						states.push({ element: element, left: element.scrollLeft, top: element.scrollTop });
-					}
-				}
-				return states;
-			}
-		},
-		
-		performLayout: function() {
+		performLayout: function*() {
 		
 			// process non-automatic items
 			this.buildImplicitMatrix();
@@ -5440,39 +3246,44 @@ module.exports = (function(window, document) { "use strict";
 				}
 
 			}
-			this.computeAbsoluteTrackBreadths();
+			yield* this.computeAbsoluteTrackBreadths();
 
-			
-			
+			//
+			// position all the fragments
+			//
+
+			var xSizes = this.finalXSizes;
+			var ySizes = this.finalYSizes;
+
+			var width = 0; var height = 0;
+			var items_widths = []; var items_heights = []; 
+			items_widths.length = items_heights.length = this.items.length;
+
+			for(var i=this.items.length; i--;) { var item = this.items[i]; 
+
+				var left = this.hlPadding;
+				for(var x = 0; x<item.xStart; x++) {
+					left += xSizes[x].breadth;
+				}
+
+				var top = this.vtPadding;
+				for(var y = 0; y<item.yStart; y++) {
+					top += ySizes[y].breadth;
+				}
+
+				item.fragment.inlineOffset = left;
+				item.fragment.blockOffset = top;
+
+			}
+
 		},
 		
-		computeAbsoluteTrackBreadths: function() {
+		computeAbsoluteTrackBreadths: function*() {
 		
-			///////////////////////////////////////////////////////////
-			// hide child elements, to get free width/height
-			///////////////////////////////////////////////////////////
-			var runtimeStyle = createRuntimeStyle('no-children', this.element);
-			runtimeStyle.set(this.element, {
-				"border"       : "none",
-				"padding"      : "0px",
-				"min-height"   : "0px",
-			});
-			for(var i = this.items.length; i--;) {
-				runtimeStyle.set(this.items[i],{"display":"none"});
-			}
-			
-			///////////////////////////////////////////////////////////
-			// hide child elements, to get free width/height
-			///////////////////////////////////////////////////////////
 			var LIMIT_IS_INFINITE = 1;		
 			var infinity = 9999999.0;
-			var fullWidth = this.element.offsetWidth;
-			var fullHeight = this.element.offsetHeight;
-			
-			///////////////////////////////////////////////////////////
-			// show child elements again
-			///////////////////////////////////////////////////////////
-			runtimeStyle.revoke();
+			var fullWidth = this.element.fixedInlineSize;
+			var fullHeight = this.element.fixedBlockSize | 0; // fixedBlockSize is null if no height is defined
 			
 			// 
 			// 10.3  Initialize Track Sizes
@@ -6038,14 +3849,8 @@ module.exports = (function(window, document) { "use strict";
 			///////////////////////////////////////////////////////////
 			// position each element absolutely, and set width to compute height
 			///////////////////////////////////////////////////////////
-			var usedStyle = usedStyleOf(this.element);
-			var runtimeStyle = createRuntimeStyle('temp-position', this.element);
-			
-			if(usedStyle.getPropertyValue('position')=='static') { 
-				runtimeStyle.set(this.element, {"position":"relative"});
-			}
-			
-			this.items.forEach(function(item) {
+
+			for(var item of this.items) {
 				
 				// firstly, compute the total breadth of the spanned tracks
 				var totalBreadth = 0;
@@ -6057,13 +3862,11 @@ module.exports = (function(window, document) { "use strict";
 				"TODO: alignment";
 				
 				// finally, set the style
-				runtimeStyle.set(item.element, {
-					"position"   : "absolute",
-					"width"      : ""+totalBreadth+"px",
-					"box-sizing" : "border-box"
+				item.fragment = yield item.element.layoutNextFragment({
+					fixedInlineSize: totalBreadth-item.hMargins
 				});
 				
-			});
+			}
 			
 			///////////////////////////////////////////////////////////
 			// compute breadth of rows
@@ -6072,8 +3875,8 @@ module.exports = (function(window, document) { "use strict";
 			var fullSize = fullHeight;
 			var ySizes = this.ySizes.map(initializeFromConstraints);
 			
-			var getMinHeightOf = function(item) { return item.element.offsetHeight+item.vMargins; };
-			var getMaxHeightOf = function(item) { return item.element.offsetHeight+item.vMargins; };
+			var getMinHeightOf = function(item) { return item.fragment.blockSize+item.vMargins; };
+			var getMaxHeightOf = function(item) { return item.fragment.blockSize+item.vMargins; };
 			var getYStartOf = function(item) { return item.yStart; };
 			var getYEndOf = function(item) { return item.yEnd; };
 			
@@ -6089,9 +3892,26 @@ module.exports = (function(window, document) { "use strict";
 			);
 									
 			///////////////////////////////////////////////////////////
-			// release the override style of elements
+			// relayout all the children
 			///////////////////////////////////////////////////////////
-			runtimeStyle.revoke();
+			for(var item of this.items) {
+				
+				// firstly, compute the total breadth of the spanned tracks
+				var totalBreadth = 0;
+				for(var cx = item.xStart; cx<item.xEnd; cx++) {
+					totalBreadth += xSizes[cx].breadth;
+				}
+				
+				// secondly, adapt to the alignment properties
+				"TODO: alignment";
+				
+				// finally, set the style
+				item.fragment = yield item.element.layoutNextFragment({
+					fixedInlineSize: totalBreadth-item.hMargins,
+					fixedBlockSize: totalBreadth-item.vMargins
+				});
+				
+			}
 			
 			///////////////////////////////////////////////////////////
 			// save the results
@@ -6109,127 +3929,6 @@ module.exports = (function(window, document) { "use strict";
 				yBreadths: ySizes.map(function(e) { return e.breadth; }),
 			});*/
 		
-		},
-		
-		generateMSGridStyle: function() {
-			
-			this.element.style.setProperty("display","-ms-grid");
-			this.element.style.setProperty("-ms-grid-rows",this.ySizes.join(' '));
-			this.element.style.setProperty("-ms-grid-columns",this.xSizes.join(' '));
-			
-			for(var i=this.items.length; i--;) { var item = this.items[i]; 
-				
-				item.element.style.setProperty("-ms-grid-row", item.yStart+1);
-				item.element.style.setProperty("-ms-grid-column", item.xStart+1);
-				item.element.style.setProperty("-ms-grid-row-span", item.yEnd-item.yStart);
-				item.element.style.setProperty("-ms-grid-column-span", item.xEnd-item.xStart);
-				
-			}
-			
-		},
-		
-		generatePolyfilledStyle: function() {
-		
-			var usedStyle = usedStyleOf(this.element);
-			var runtimeStyle = createRuntimeStyle("css-grid", this.element);
-		
-			var xSizes = this.finalXSizes;
-			var ySizes = this.finalYSizes;
-			
-			var grid_width = 0;
-			for(var x = 0; x<xSizes.length; x++) {
-				grid_width += xSizes[x].breadth;
-			}
-			
-			var grid_height = 0;
-			for(var y = 0; y<ySizes.length; y++) {
-				grid_height += ySizes[y].breadth;
-			}
-			
-			var runtimeStyleData = {};
-			if(["block","inline-block"].indexOf(usedStyle.getPropertyValue("display")) == -1) {
-				runtimeStyleData["display"] = "block";
-			}
-			if(usedStyle.getPropertyValue('position')=='static') {
-				runtimeStyleData["position"] = "relative";
-			}
-			
-			runtimeStyle.set(this.element, runtimeStyleData);
-			
-
-			// set the position and sizing of each elements
-			var width = grid_width; var height = grid_height;
-			var items_widths = []; var items_heights = []; 
-			items_widths.length = items_heights.length = this.items.length;
-			for(var i=this.items.length; i--;) { var item = this.items[i]; 
-				
-				var left = this.hlPadding;
-				for(var x = 0; x<item.xStart; x++) {
-					left += xSizes[x].breadth;
-				}
-				
-				var width = 0;
-				for(var x = item.xStart; x<item.xEnd; x++) {
-					width += xSizes[x].breadth;
-				}
-				
-				var top = this.vtPadding;
-				for(var y = 0; y<item.yStart; y++) {
-					top += ySizes[y].breadth;
-				}
-				
-				var height = 0;
-				for(var y = item.yStart; y<item.yEnd; y++) {
-					height += ySizes[y].breadth;
-				}
-					
-				
-				runtimeStyle.set(item.element, {
-					"position"    : "absolute",
-					"box-sizing"  : "border-box",
-					"top"         : ""+top +"px",
-					"left"        : ""+left+'px'
-				});
-				
-				items_widths[i] = width-item.hMargins;
-				items_heights[i] = height-item.vMargins;
-				
-			}
-			
-			var isReplaced = /^(SVG|MATH|IMG|VIDEO|PICTURE|OBJECT|EMBED|IFRAME)$/i;
-			
-			// if horizontal stretch
-			if(true) { // TODO: horizontal stretch
-				for(var i=this.items.length; i--;) { var item = this.items[i]; var width = items_widths[i];
-					if(item.minWidth <= width || isReplaced.test(item.element.tagName)) { // TODO: fix that... (should only do it for auto elements with stretch enabled)
-						runtimeStyle.set(item.element, {"width": width +'px'});
-					}
-				}
-			}
-			
-			// if vertical stretch
-			if(true) { // TODO: vertical stretch
-				for(var i=this.items.length; i--;) { var item = this.items[i]; var height = items_heights[i];
-					if(item.element.offsetHeight <= height || isReplaced.test(item.element.tagName)) {
-						runtimeStyle.set(item.element, {"height": height+'px'});
-					}
-				}
-			}
-			
-			// make sure the final size is right:
-			var runtimeStyleData = {};
-			//if(["absolute","fixed"].indexOf(usedStyle.getPropertyValue("position")) >= 0) { runtimeStyleData["width"] = grid_width+'px'; }
-			if(["auto","0px"].indexOf(usedStyle.getPropertyValue("width")) >= 0) { runtimeStyleData["width"] = grid_width+'px'; }
-			if(["auto","0px"].indexOf(usedStyle.getPropertyValue("height")) >= 0) { runtimeStyleData["height"] = grid_height+'px'; }
-			runtimeStyle.set(this.element, runtimeStyleData);
-
-			
-		},
-		
-		revokePolyfilledStyle: function() {
-			
-			createRuntimeStyle('css-grid', this.element).revoke();
-			
 		},
 		
 		findXStart: function(item) {
@@ -6521,7 +4220,7 @@ module.exports = (function(window, document) { "use strict";
 	};
 	return cssGrid;
 	
-})(window, document)
+})()
 
 require.define('src/css-grid/lib/grid-layout.js');
 
@@ -6530,161 +4229,63 @@ require.define('src/css-grid/lib/grid-layout.js');
 // TODO: document the "no_auto_css_grid" flag?
 // TOOD: document the "no_ms_grid_implementation" flag?
 
-!(function(window, document) { "use strict";
+!(function() { "use strict";
 
-	if("gridRow" in document.body.style) { console.warn('Polyfill skipped'); return; }
-
-	require('src/core/polyfill-dom-console.js');
-	var cssCascade = require('src/core/css-cascade.js');
 	var cssGrid = require('src/css-grid/lib/grid-layout.js');
-	
-	var enabled = false;
-	var enablePolyfill = function() { if(enabled) { return; } else { enabled = true; }
+	console.log("css-grid-polyfill");
 
+	var layoutProperties = ['box-sizing','margin-left','margin-right','margin-top','margin-bottom','padding-left','padding-right','padding-top','padding-bottom','border-left-width','border-right-width','border-top-width','border-bottom-width'];
+	registerLayout('grid', class GridLayout {
+		
 		//
 		// [0] define css properties
-		// those properties can now be set using Element.myStyle.xyz if they weren't already
 		//
-		
-		var gridProperties = ['grid','grid-template','grid-template-rows','grid-template-columns','grid-template-areas','grid-areas','grid-auto-flow'];
-		var gridItemProperties = ['grid-area','grid-row','grid-column','grid-row-start','grid-row-end','grid-column-start','grid-column-end','order'];
-		for(var i=gridProperties.length; i--;)     { cssCascade.polyfillStyleInterface(gridProperties[i]); }
-		for(var i=gridItemProperties.length; i--;) { cssCascade.polyfillStyleInterface(gridItemProperties[i]); }
-		
-		// 
-		// [1] when any update happens:
-		// construct new content and region flow pairs
-		// restart the region layout algorithm for the modified pairs
-		// 
-		
-		cssCascade.startMonitoringProperties(
-			gridProperties, 
-			{
-				onupdate: function onupdate(element, rule) {
+		static get inputProperties() {
+			return ['--grid','--grid-template','--grid-template-rows','--grid-template-columns','--grid-template-areas','--grid-areas','--grid-auto-flow',...layoutProperties];
+		}
+		static get childInputProperties() {
+			return ['--grid-area','--grid-row','--grid-column','--grid-row-start','--grid-row-end','--grid-column-start','--grid-column-end','order',...layoutProperties]
+		}
 
-					// log some message in the console for debug
-					cssConsole.dir({message:"onupdate",element:element,selector:rule.selector.toCSSString(),rule:rule});
-					
-					// check if the element already has a grid or grid-item layout
-					if(element.gridLayout) {
-					
-						// the layout must be recomputed
-						element.gridLayout.scheduleRelayout();
-						
-					} else {
-					
-						// setup a new grid model, and schedule a relayout
-						element.gridLayout = new cssGrid.GridLayout(element);
-						element.gridLayout.scheduleRelayout();
-					
-						// TODO: watch DOM for updates in the element?
-						if("MutationObserver" in window) {
-							// non-attribute-related changes
-							void function() {
-								var observer = new MutationObserver(function(e) {
-									element.gridLayout.scheduleRelayout(); return;
-									//debugger; console.log(e);
-								});
-								var target = document.documentElement;
-								var config = {
-									subtree: true, 
-									attributes: false, 
-									childList: true, 
-									characterData: true
-								};
-								observer.observe(target, config);
-							}();
-							// attribute-related changes
-							void function() {
-								var observer = new MutationObserver(function(e) {
-									element.gridLayout.scheduleRelayout(); return;
-									//debugger; console.log(e);
-									//for(var i = e.length; i--;) {
-									//	var attr = e[i].attributeName;
-									//	if(attr=='class' || attr=='style') {
-									//		element.gridLayout.scheduleRelayout(); return;
-									//	}
-									//}
-								});
-								var target = element;
-								var config = { 
-									subtree: true, 
-									attributes: true, 
-									attributeFilter: ['class', 'style', 'width', 'height', 'src'],
-									childList: false, 
-									characterData: false
-								};
-							}();
-							
-						} else if("MutationEvent" in window) {
-							element.addEventListener('DOMSubtreeModified', function() {
-								if(!element.gridLayout.isLayoutScheduled) { element.gridLayout.scheduleRelayout(); }
-							}, true);
-						}
-						// TODO: watch resize events for relayout?
-						var lastWidth = element.offsetWidth;
-						var lastHeight = element.offsetHeight;
-						var updateOnResize = function() {
-							if(!element.gridLayout) { return; }
-							if(lastWidth != element.offsetWidth || lastHeight != element.offsetHeight) {
-								// update last known size
-								lastWidth = element.offsetWidth;
-								lastHeight = element.offsetHeight;
-								// relayout (and prevent double-dispatch)
-								element.gridLayout.scheduleRelayout();
-							}
-							requestAnimationFrame(updateOnResize);
-						}
-						requestAnimationFrame(updateOnResize);
-						// TODO: watch the load event for relayout?
-						window.addEventListener('load', function(){element.gridLayout&&element.gridLayout.scheduleRelayout()});
-						var images = element.querySelectorAll('img');
-						for(var i = images.length; i--;) {
-							images[i].addEventListener('load', function(){element.gridLayout&&element.gridLayout.scheduleRelayout()});
-						}
-						
-					}
-					
-				}
-			}
-		);
-		
-		cssCascade.startMonitoringProperties(
-			gridItemProperties, 
-			{
-				onupdate: function onupdate(element, rule) {
+		*intrinsicSizes() { /* ... */ }
 
-					// log some message in the console for debug
-					cssConsole.dir({message:"onupdate",element:element,selector:rule.selector.toCSSString(),rule:rule});
-					
-					// check if the element already has a grid or grid-item layout
-					if(element.parentGridLayout) {
-						
-						// the parent layout must be recomputed
-						element.parentGridLayout.scheduleRelayout();
-						
-					}
-					
-				}
-			}
-		);
-		
-	}
+		*layout(children, edges, constraints, styleMap) {
 
-	// expose the enabler
-	cssGrid.enablePolyfill = enablePolyfill;
-	
-	// enable the polyfill automatically
-	try {
-		if(!("no_auto_css_grid" in window)) { enablePolyfill(); }
-	} catch (ex) {
-		setImmediate(function() { throw ex; });
-	}
-	
-	// return the module
-	return cssGrid;
-	
-})(window, document);
+			debugger;
+
+			//
+			// Initialize the grid layout
+			//
+
+			var grid = new cssGrid.GridLayout({ 
+				styleMap:styleMap, 
+				children:children,
+				fixedInlineSize:constraints.fixedInlineSize, 
+				fixedBlockSize:constraints.fixedBlockSize
+			});
+
+			grid.updateFromElement();
+			
+			//
+			// Perform the grid layout
+			// 
+
+			yield* grid.performLayout();
+
+			//
+			// Return the layout results
+			//
+			
+			return {
+				autoBlockSize: constraints.fixedInlineSize, 
+				childFragments: grid.items.map(item => item.fragment)
+			};
+
+		}
+
+	});
+
+})()
 require.define('src/css-grid/polyfill.js');
 
 ////////////////////////////////////////
@@ -6694,7 +4295,7 @@ require.define('src/css-grid/polyfill.js');
 require('src/css-grid/polyfill.js');
 require.define('src/requirements.js');
 
-window.cssPolyfills = { require: require };
+var cssPolyfills = { require: require };
 
 })();
 //# sourceMappingURL=css-polyfills.js.map

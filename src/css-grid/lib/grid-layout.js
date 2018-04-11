@@ -1,36 +1,17 @@
-module.exports = (function(window, document) { "use strict";
+module.exports = (function() { "use strict";
 	
 	// import dependencies
 	var cssSyntax = require('core:css-syntax');
 	
-	var cssStyle  = require('core:css-style'),
-	    usedStyleOf     = cssStyle.usedStyleOf,
-	    currentStyleOf  = cssStyle.currentStyleOf,
-	    enforceStyle    = cssStyle.enforceStyle,
-	    restoreStyle    = cssStyle.restoreStyle;
-		
-	var VirtualStylesheetFactory = require('core:css-virtual-stylesheet-factory');
-	
-	require('core:polyfill-dom-uniqueID');
-	require('core:polyfill-dom-requestAnimationFrame');
-	
-	var virtualStylesheetFactory = new VirtualStylesheetFactory();
-	
-	var createRuntimeStyle = function(reason, element) {
-		
-		// expand the reason
-		if(element) {
-			reason = (element.id || element.uniqueID) + '-' + reason;
-		}
-		
-		// return a virtual stylesheet
-		return virtualStylesheetFactory.createStyleSheet(reason);
-		
-	}
-	
 	var cssSizing = require('core:css-sizing');
 	
 	var cssUnits = require('core:css-units');
+
+	StylePropertyMapReadOnly.prototype.getPropertyValue=function(propertyName) {
+		var value = this.get(propertyName);
+		if(value === null) return ""
+		return value.toString();
+	}
 	
 	// define the module
 	var LOCATE_AUTO = 0;
@@ -192,19 +173,13 @@ module.exports = (function(window, document) { "use strict";
 		updateFromElement: function() {
 			
 			var element = this.element;
-			var usedStyle = usedStyleOf(element);
-			var style = currentStyleOf(element);
-			var getStyle = function(prop) {
-				var value = style[prop];
-				if(typeof(value)=="undefined") { return ""; }
-				return value;
-			}
+			var usedStyle = element.styleMap;
 			
 			this.reset(); 
 			this.buggy = false;
 			
 			// compute order property
-			this.order = parseInt(style['order'])|0;
+			this.order = parseInt(usedStyle.getPropertyValue('order'))|0;
 			
 			// compute size
 			this.minWidth = cssSizing.minWidthOf(element);
@@ -218,8 +193,8 @@ module.exports = (function(window, document) { "use strict";
 			this.vBorders = parseInt(usedStyle.getPropertyValue('border-top-width')) + parseInt(usedStyle.getPropertyValue('border-bottom-width'));
 			
 			// locate x and y lines together
-			if(style["grid-area"]) {
-				var parts = getStyle("grid-area").split('/');
+			if(usedStyle.getPropertyValue("--grid-area")) {
+				var parts = usedStyle.getPropertyValue("--grid-area").split('/');
 				var is_ident = /^\s*([a-z][-_a-z0-9]*)\s*$/i;
 				var row_start = parts[0] || 'auto';
 				var col_start = parts[1] || (is_ident.test(row_start) ? row_start : 'auto');
@@ -230,18 +205,18 @@ module.exports = (function(window, document) { "use strict";
 			}
 			
 			// locate x lines
-			if(style["grid-column"] || style["grid-column-start"] || style["grid-column-end"]) {
-				var parts = getStyle("grid-column").split('/');
-				var start = getStyle("grid-column-start") || parts[0] || 'auto';
-				var end   = getStyle("grid-column-end") || parts[1] || parts[0] || start;
+			if(usedStyle.getPropertyValue("--grid-column") || usedStyle.getPropertyValue("--grid-column-start") || usedStyle.getPropertyValue("--grid-column-end")) {
+				var parts = usedStyle.getPropertyValue("--grid-column").split('/');
+				var start = usedStyle.getPropertyValue("--grid-column-start") || parts[0] || 'auto';
+				var end   = usedStyle.getPropertyValue("--grid-column-end") || parts[1] || parts[0] || start;
 				this.parseLocationInstructions(this.specifiedXStart, this.specifiedXEnd, start + " / " + end);
 			}
 			
 			// locate y lines
-			if(style["grid-row"] || style["grid-row-start"] || style["grid-row-end"]) {
-				var parts = getStyle("grid-row").split('/');
-				var start = getStyle("grid-row-start") || parts[0];
-				var end   = getStyle("grid-row-end") || parts[1] || parts[0];
+			if(usedStyle.getPropertyValue("--grid-row") || usedStyle.getPropertyValue("--grid-row-start") || usedStyle.getPropertyValue("--grid-row-end")) {
+				var parts = usedStyle.getPropertyValue("--grid-row").split('/');
+				var start = usedStyle.getPropertyValue("--grid-row-start") || parts[0];
+				var end   = usedStyle.getPropertyValue("--grid-row-end") || parts[1] || parts[0];
 				this.parseLocationInstructions(this.specifiedYStart, this.specifiedYEnd, start + " / " + end);
 			}
 			
@@ -509,10 +484,7 @@ module.exports = (function(window, document) { "use strict";
 
 		// reset
 		this.reset();
-		
-		// other fields
-		this.isLayoutScheduled = false;
-		
+				
 	}
 	
 	GridLayout.prototype = {
@@ -586,18 +558,12 @@ module.exports = (function(window, document) { "use strict";
 			
 			// add new items
 			this.items.length = 0;
-			var currentItem = this.element.firstElementChild;
-			while(currentItem) {
-				
-				// add a new grid item for the element
-				var newGridItem = new GridItem(currentItem, this);
+			this.items = this.element.children.map(child => {
+				var newGridItem = new cssGrid.GridItem(child, this);
 				newGridItem.updateFromElement();
-				this.items.push(newGridItem);
-				
-				// move to the next element
-				currentItem = currentItem.nextElementSibling;
-			}
-			
+				return newGridItem;
+			});
+
 			// sort them by css order (desc) then by dom order (asc)
 			var sortableItems = this.items.map(function(item, i) { return { item: item, order: item.order, position: i } });
 			sortableItems.sort(function(a,b) { if(a.order==b.order) { return a.position-b.position } else if(a.order>b.order) { return +1 } else { return -1; } });
@@ -607,14 +573,14 @@ module.exports = (function(window, document) { "use strict";
 			this.reset();
 			
 			// update its own style
-			var style = usedStyleOf(this.element); var cssText = '';
-			if(cssText=style["grid-template"])         { this.parseGridTemplate(cssText);    }
-			if(cssText=style["grid-template-rows"])    { this.parseRowsTemplate(cssText);    }
-			if(cssText=style["grid-template-columns"]) { this.parseColumnsTemplate(cssText); }
-			if(cssText=style["grid-template-areas"])   { this.parseAreasTemplate(cssText);   }
-			if(cssText=style["grid-auto-rows"]) { this.parseAutoRowsBreadth(cssText); }
-			if(cssText=style["grid-auto-columns"]) { this.parseAutoColumnsBreadth(cssText); }
-			if(cssText=style["grid-auto-flow"]) { // FIXME: should be in a function
+			var usedStyle = this.element.styleMap; var cssText = '';
+			if(cssText=usedStyle.getPropertyValue("--grid-template"))         { this.parseGridTemplate(cssText);    }
+			if(cssText=usedStyle.getPropertyValue("--grid-template-rows"))    { this.parseRowsTemplate(cssText);    }
+			if(cssText=usedStyle.getPropertyValue("--grid-template-columns")) { this.parseColumnsTemplate(cssText); }
+			if(cssText=usedStyle.getPropertyValue("--grid-template-areas"))   { this.parseAreasTemplate(cssText);   }
+			if(cssText=usedStyle.getPropertyValue("--grid-auto-rows")) { this.parseAutoRowsBreadth(cssText); }
+			if(cssText=usedStyle.getPropertyValue("--grid-auto-columns")) { this.parseAutoColumnsBreadth(cssText); }
+			if(cssText=usedStyle.getPropertyValue("--grid-auto-flow")) { // FIXME: should be in a function
 				
 				// FIXME: not a real parse...
 				var tokens = cssText.trim().toLowerCase().split(/\s+/g);
@@ -638,7 +604,6 @@ module.exports = (function(window, document) { "use strict";
 				
 			}
 			
-			var usedStyle = style;
 			this.hlPadding = parseInt(usedStyle.getPropertyValue('border-left-width')) + parseInt(usedStyle.getPropertyValue('padding-left'));
 			this.hrPadding = parseInt(usedStyle.getPropertyValue('border-right-width')) + parseInt(usedStyle.getPropertyValue('padding-right'));
 			this.vtPadding = parseInt(usedStyle.getPropertyValue('border-top-width')) + parseInt(usedStyle.getPropertyValue('padding-top'));
@@ -1401,40 +1366,7 @@ module.exports = (function(window, document) { "use strict";
 			
 		},
 		
-		scheduleRelayout: function() {
-			var This = this;
-			if(!This.isLayoutScheduled) {
-				This.isLayoutScheduled = true;
-				requestAnimationFrame(function() {
-					try {
-						var savedScrolls = getScrollStates();
-						This.revokePolyfilledStyle();
-						This.updateFromElement();
-						This.performLayout();
-						This.generatePolyfilledStyle();
-						savedScrolls.forEach(function(d) {
-							d.element.scrollTop = d.top;
-							d.element.scrollLeft = d.left;
-						});
-					} finally {
-						This.isLayoutScheduled = false;
-					}
-				});
-			}
-			//-----------------------------------------------------------
-			function getScrollStates() {
-				var states = [];
-				var element = This.element;
-				while(element = element.parentNode) {
-					if("scrollTop" in element) {
-						states.push({ element: element, left: element.scrollLeft, top: element.scrollTop });
-					}
-				}
-				return states;
-			}
-		},
-		
-		performLayout: function() {
+		performLayout: function*() {
 		
 			// process non-automatic items
 			this.buildImplicitMatrix();
@@ -1707,39 +1639,44 @@ module.exports = (function(window, document) { "use strict";
 				}
 
 			}
-			this.computeAbsoluteTrackBreadths();
+			yield* this.computeAbsoluteTrackBreadths();
 
-			
-			
+			//
+			// position all the fragments
+			//
+
+			var xSizes = this.finalXSizes;
+			var ySizes = this.finalYSizes;
+
+			var width = 0; var height = 0;
+			var items_widths = []; var items_heights = []; 
+			items_widths.length = items_heights.length = this.items.length;
+
+			for(var i=this.items.length; i--;) { var item = this.items[i]; 
+
+				var left = this.hlPadding;
+				for(var x = 0; x<item.xStart; x++) {
+					left += xSizes[x].breadth;
+				}
+
+				var top = this.vtPadding;
+				for(var y = 0; y<item.yStart; y++) {
+					top += ySizes[y].breadth;
+				}
+
+				item.fragment.inlineOffset = left;
+				item.fragment.blockOffset = top;
+
+			}
+
 		},
 		
-		computeAbsoluteTrackBreadths: function() {
+		computeAbsoluteTrackBreadths: function*() {
 		
-			///////////////////////////////////////////////////////////
-			// hide child elements, to get free width/height
-			///////////////////////////////////////////////////////////
-			var runtimeStyle = createRuntimeStyle('no-children', this.element);
-			runtimeStyle.set(this.element, {
-				"border"       : "none",
-				"padding"      : "0px",
-				"min-height"   : "0px",
-			});
-			for(var i = this.items.length; i--;) {
-				runtimeStyle.set(this.items[i],{"display":"none"});
-			}
-			
-			///////////////////////////////////////////////////////////
-			// hide child elements, to get free width/height
-			///////////////////////////////////////////////////////////
 			var LIMIT_IS_INFINITE = 1;		
 			var infinity = 9999999.0;
-			var fullWidth = this.element.offsetWidth;
-			var fullHeight = this.element.offsetHeight;
-			
-			///////////////////////////////////////////////////////////
-			// show child elements again
-			///////////////////////////////////////////////////////////
-			runtimeStyle.revoke();
+			var fullWidth = this.element.fixedInlineSize;
+			var fullHeight = this.element.fixedBlockSize | 0; // fixedBlockSize is null if no height is defined
 			
 			// 
 			// 10.3  Initialize Track Sizes
@@ -2305,14 +2242,8 @@ module.exports = (function(window, document) { "use strict";
 			///////////////////////////////////////////////////////////
 			// position each element absolutely, and set width to compute height
 			///////////////////////////////////////////////////////////
-			var usedStyle = usedStyleOf(this.element);
-			var runtimeStyle = createRuntimeStyle('temp-position', this.element);
-			
-			if(usedStyle.getPropertyValue('position')=='static') { 
-				runtimeStyle.set(this.element, {"position":"relative"});
-			}
-			
-			this.items.forEach(function(item) {
+
+			for(var item of this.items) {
 				
 				// firstly, compute the total breadth of the spanned tracks
 				var totalBreadth = 0;
@@ -2324,13 +2255,11 @@ module.exports = (function(window, document) { "use strict";
 				"TODO: alignment";
 				
 				// finally, set the style
-				runtimeStyle.set(item.element, {
-					"position"   : "absolute",
-					"width"      : ""+totalBreadth+"px",
-					"box-sizing" : "border-box"
+				item.fragment = yield item.element.layoutNextFragment({
+					fixedInlineSize: totalBreadth-item.hMargins
 				});
 				
-			});
+			}
 			
 			///////////////////////////////////////////////////////////
 			// compute breadth of rows
@@ -2339,8 +2268,8 @@ module.exports = (function(window, document) { "use strict";
 			var fullSize = fullHeight;
 			var ySizes = this.ySizes.map(initializeFromConstraints);
 			
-			var getMinHeightOf = function(item) { return item.element.offsetHeight+item.vMargins; };
-			var getMaxHeightOf = function(item) { return item.element.offsetHeight+item.vMargins; };
+			var getMinHeightOf = function(item) { return item.fragment.blockSize+item.vMargins; };
+			var getMaxHeightOf = function(item) { return item.fragment.blockSize+item.vMargins; };
 			var getYStartOf = function(item) { return item.yStart; };
 			var getYEndOf = function(item) { return item.yEnd; };
 			
@@ -2356,9 +2285,26 @@ module.exports = (function(window, document) { "use strict";
 			);
 									
 			///////////////////////////////////////////////////////////
-			// release the override style of elements
+			// relayout all the children
 			///////////////////////////////////////////////////////////
-			runtimeStyle.revoke();
+			for(var item of this.items) {
+				
+				// firstly, compute the total breadth of the spanned tracks
+				var totalBreadth = 0;
+				for(var cx = item.xStart; cx<item.xEnd; cx++) {
+					totalBreadth += xSizes[cx].breadth;
+				}
+				
+				// secondly, adapt to the alignment properties
+				"TODO: alignment";
+				
+				// finally, set the style
+				item.fragment = yield item.element.layoutNextFragment({
+					fixedInlineSize: totalBreadth-item.hMargins,
+					fixedBlockSize: totalBreadth-item.vMargins
+				});
+				
+			}
 			
 			///////////////////////////////////////////////////////////
 			// save the results
@@ -2376,127 +2322,6 @@ module.exports = (function(window, document) { "use strict";
 				yBreadths: ySizes.map(function(e) { return e.breadth; }),
 			});*/
 		
-		},
-		
-		generateMSGridStyle: function() {
-			
-			this.element.style.setProperty("display","-ms-grid");
-			this.element.style.setProperty("-ms-grid-rows",this.ySizes.join(' '));
-			this.element.style.setProperty("-ms-grid-columns",this.xSizes.join(' '));
-			
-			for(var i=this.items.length; i--;) { var item = this.items[i]; 
-				
-				item.element.style.setProperty("-ms-grid-row", item.yStart+1);
-				item.element.style.setProperty("-ms-grid-column", item.xStart+1);
-				item.element.style.setProperty("-ms-grid-row-span", item.yEnd-item.yStart);
-				item.element.style.setProperty("-ms-grid-column-span", item.xEnd-item.xStart);
-				
-			}
-			
-		},
-		
-		generatePolyfilledStyle: function() {
-		
-			var usedStyle = usedStyleOf(this.element);
-			var runtimeStyle = createRuntimeStyle("css-grid", this.element);
-		
-			var xSizes = this.finalXSizes;
-			var ySizes = this.finalYSizes;
-			
-			var grid_width = 0;
-			for(var x = 0; x<xSizes.length; x++) {
-				grid_width += xSizes[x].breadth;
-			}
-			
-			var grid_height = 0;
-			for(var y = 0; y<ySizes.length; y++) {
-				grid_height += ySizes[y].breadth;
-			}
-			
-			var runtimeStyleData = {};
-			if(["block","inline-block"].indexOf(usedStyle.getPropertyValue("display")) == -1) {
-				runtimeStyleData["display"] = "block";
-			}
-			if(usedStyle.getPropertyValue('position')=='static') {
-				runtimeStyleData["position"] = "relative";
-			}
-			
-			runtimeStyle.set(this.element, runtimeStyleData);
-			
-
-			// set the position and sizing of each elements
-			var width = grid_width; var height = grid_height;
-			var items_widths = []; var items_heights = []; 
-			items_widths.length = items_heights.length = this.items.length;
-			for(var i=this.items.length; i--;) { var item = this.items[i]; 
-				
-				var left = this.hlPadding;
-				for(var x = 0; x<item.xStart; x++) {
-					left += xSizes[x].breadth;
-				}
-				
-				var width = 0;
-				for(var x = item.xStart; x<item.xEnd; x++) {
-					width += xSizes[x].breadth;
-				}
-				
-				var top = this.vtPadding;
-				for(var y = 0; y<item.yStart; y++) {
-					top += ySizes[y].breadth;
-				}
-				
-				var height = 0;
-				for(var y = item.yStart; y<item.yEnd; y++) {
-					height += ySizes[y].breadth;
-				}
-					
-				
-				runtimeStyle.set(item.element, {
-					"position"    : "absolute",
-					"box-sizing"  : "border-box",
-					"top"         : ""+top +"px",
-					"left"        : ""+left+'px'
-				});
-				
-				items_widths[i] = width-item.hMargins;
-				items_heights[i] = height-item.vMargins;
-				
-			}
-			
-			var isReplaced = /^(SVG|MATH|IMG|VIDEO|PICTURE|OBJECT|EMBED|IFRAME)$/i;
-			
-			// if horizontal stretch
-			if(true) { // TODO: horizontal stretch
-				for(var i=this.items.length; i--;) { var item = this.items[i]; var width = items_widths[i];
-					if(item.minWidth <= width || isReplaced.test(item.element.tagName)) { // TODO: fix that... (should only do it for auto elements with stretch enabled)
-						runtimeStyle.set(item.element, {"width": width +'px'});
-					}
-				}
-			}
-			
-			// if vertical stretch
-			if(true) { // TODO: vertical stretch
-				for(var i=this.items.length; i--;) { var item = this.items[i]; var height = items_heights[i];
-					if(item.element.offsetHeight <= height || isReplaced.test(item.element.tagName)) {
-						runtimeStyle.set(item.element, {"height": height+'px'});
-					}
-				}
-			}
-			
-			// make sure the final size is right:
-			var runtimeStyleData = {};
-			//if(["absolute","fixed"].indexOf(usedStyle.getPropertyValue("position")) >= 0) { runtimeStyleData["width"] = grid_width+'px'; }
-			if(["auto","0px"].indexOf(usedStyle.getPropertyValue("width")) >= 0) { runtimeStyleData["width"] = grid_width+'px'; }
-			if(["auto","0px"].indexOf(usedStyle.getPropertyValue("height")) >= 0) { runtimeStyleData["height"] = grid_height+'px'; }
-			runtimeStyle.set(this.element, runtimeStyleData);
-
-			
-		},
-		
-		revokePolyfilledStyle: function() {
-			
-			createRuntimeStyle('css-grid', this.element).revoke();
-			
 		},
 		
 		findXStart: function(item) {
@@ -2788,4 +2613,4 @@ module.exports = (function(window, document) { "use strict";
 	};
 	return cssGrid;
 	
-})(window, document)
+})()

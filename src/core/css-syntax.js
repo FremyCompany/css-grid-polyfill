@@ -2,7 +2,7 @@
 // note: this file is based on Tab Atkins's CSS Parser
 // please include him (@tabatkins) if you open any issue for this file
 // 
-module.exports = (function(window, document) { "use strict";
+module.exports = (function() { "use strict";
 
 // 
 // exports

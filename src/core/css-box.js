@@ -1,7 +1,7 @@
 //
 // The Box module defines algorithms for dealing with css boxes
 //
-module.exports = (function(window, document) {
+module.exports = (function() {
 	
 	// Original code licensed by Adobe Systems Incorporated under the Apache License 2.0. 
 	// https://github.com/adobe-webplatform/brackets-css-shapes-editor/blob/master/thirdparty/CSSShapesEditor.js#L442
@@ -76,4 +76,4 @@ module.exports = (function(window, document) {
 	
 	return cssBox;
 	
-})(window, document);
+})();

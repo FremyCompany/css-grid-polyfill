@@ -37,7 +37,7 @@ module.exports = function(grunt) {
 	code_wrapper_start += code_wrapper_separator;
 	
 	var code_wrapper_end = (
-		"\n\n" + "window.cssPolyfills = { require: require };" + "\n\n" + "})();"
+		"\n\n" + "var cssPolyfills = { require: require };" + "\n\n" + "})();"
 	);
 	
 	
@@ -243,6 +243,6 @@ module.exports = function(grunt) {
 	});
 
 	// Default task.
-	grunt.registerTask('default', [ /*'jshint', 'nodeunit', */'findreq', 'concat', 'uglify']);
+	grunt.registerTask('default', [ /*'jshint', 'nodeunit', */'findreq', 'concat', /*'uglify'*/]);
 
 };
