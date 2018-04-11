@@ -1,6 +1,8 @@
 <!doctype html>
 
 <script src="css-polyfills-import.js"></script>
-<div style="display: layout(grid); --grid-template-rows: 200px 200px; --grid-template-columns: 200px 200px;">
-    <div style="background: yellow; --grid-area: 2 / 2">A</div>
+<div style="display: layout(grid); border: 50px solid red; padding: 50px; --grid-template-rows: auto 200px; --grid-template-columns: auto 200px;">
+    <div style="background: cyan; --grid-area: 1 / 1">A</div>
+    <div style="background: cyan; --grid-area: 2 / 2">A</div>
+    <div style="background: yellow; margin: 10px; outline: 5px solid blue; outline-offset: 5px; --grid-area: 2 / 2">A</div>
 </div>

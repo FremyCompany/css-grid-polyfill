@@ -1347,15 +1347,19 @@ require.define('src/core/css-syntax.js');
 
 module.exports = (function() {
 	
+	var infinity = 9999999.0;
+
 	// define the module
 	var cssSizing = {
 		
 		minWidthOf: function*(element) {
 		
+			return 25; // TODO: remove this when Ian fixes Blink
+
 			//
 			// make the parent an infinite relative container (if necessary)
 			//
-			var fragment = yield element.layoutNextFragment();
+			var fragment = yield element.layoutNextFragment({ availableInlineSize: infinity });
 			
 			//
 			// return the result
@@ -1365,14 +1369,13 @@ module.exports = (function() {
 		
 		maxWidthOf: function*(element) {
 
-			var infinity = 9999999.0;
 			return infinity; // TODO: remove this when Ian fixes Blink
 		
 			//
 			// make the parent a relative container (if necessary)
 			//
 			var fragment = yield element.layoutNextFragment({ availableInlineSize: infinity });
-			
+
 			//
 			// return the result
 			//
@@ -1733,13 +1736,17 @@ module.exports = (function() { "use strict";
 			this.minWidth = 0;
 			this.maxWidth = 0;
 			
+			this.hlMargin = 0;
+			this.hrMargin = 0;
+			this.vtMargin = 0;
+			this.vbMargin = 0;
+			
 			this.hMargins = 0;
 			this.vMargins = 0;
 			this.hPaddings = 0;
 			this.vPaddings = 0;
 			this.hBorders = 0;
 			this.vBorders = 0;
-			
 			
 			this.xStart = -1;
 			this.xEnd = -1;
@@ -1777,7 +1784,7 @@ module.exports = (function() { "use strict";
 			
 		},
 	
-		updateFromElement: function() {
+		updateFromElement: function*() {
 			
 			var element = this.element;
 			var usedStyle = element.styleMap;
@@ -1789,11 +1796,16 @@ module.exports = (function() { "use strict";
 			this.order = parseInt(usedStyle.getPropertyValue('order'))|0;
 			
 			// compute size
-			this.minWidth = cssSizing.minWidthOf(element);
-			this.maxWidth = cssSizing.maxWidthOf(element);
+			this.minWidth = yield* cssSizing.minWidthOf(element);
+			this.maxWidth = yield* cssSizing.maxWidthOf(element);
+
+			this.hlMargin = parseInt(usedStyle.getPropertyValue("margin-left"));
+			this.hrMargin = parseInt(usedStyle.getPropertyValue("margin-right"));
+			this.vtMargin = parseInt(usedStyle.getPropertyValue("margin-top"));
+			this.vbMargin = parseInt(usedStyle.getPropertyValue("margin-bottom"));
 			
-			this.hMargins = parseInt(usedStyle.getPropertyValue('margin-left')) + parseInt(usedStyle.getPropertyValue('margin-right'));
-			this.vMargins = parseInt(usedStyle.getPropertyValue('margin-top')) + parseInt(usedStyle.getPropertyValue('margin-bottom'));
+			this.hMargins = this.hlMargin + this.hrMargin;
+			this.vMargins = this.vtMargin + this.vbMargin;
 			this.hPaddings = parseInt(usedStyle.getPropertyValue('padding-left')) + parseInt(usedStyle.getPropertyValue('padding-right'));
 			this.vPaddings = parseInt(usedStyle.getPropertyValue('padding-top')) + parseInt(usedStyle.getPropertyValue('padding-bottom'));
 			this.hBorders = parseInt(usedStyle.getPropertyValue('border-left-width')) + parseInt(usedStyle.getPropertyValue('border-right-width'));
@@ -2156,7 +2168,7 @@ module.exports = (function() { "use strict";
 			this.element.gridLayout = undefined;
 		},
 		
-		updateFromElement: function() {
+		updateFromElement: function*() {
 			
 			// delete old items
 			for(var i = this.items.length; i--;) { var item = this.items[i];
@@ -2165,11 +2177,10 @@ module.exports = (function() { "use strict";
 			
 			// add new items
 			this.items.length = 0;
-			this.items = this.element.children.map(child => {
-				var newGridItem = new cssGrid.GridItem(child, this);
-				newGridItem.updateFromElement();
-				return newGridItem;
-			});
+			this.items = this.element.children.map(child => new cssGrid.GridItem(child, this));
+			for(var newGridItem of this.items) {
+				yield* newGridItem.updateFromElement();
+			}
 
 			// sort them by css order (desc) then by dom order (asc)
 			var sortableItems = this.items.map(function(item, i) { return { item: item, order: item.order, position: i } });
@@ -3255,6 +3266,16 @@ module.exports = (function() { "use strict";
 			var xSizes = this.finalXSizes;
 			var ySizes = this.finalYSizes;
 
+			var gridWidth = 0, gridHeight = 0;
+			for(var x = 0; x<xSizes.length; x++) {
+				gridWidth += xSizes[x].breadth;
+			}
+			for(var y = 0; y<xSizes.length; y++) {
+				gridHeight += ySizes[y].breadth;
+			}
+			this.gridWidth = gridWidth;
+			this.gridHeight = gridHeight;
+
 			var width = 0; var height = 0;
 			var items_widths = []; var items_heights = []; 
 			items_widths.length = items_heights.length = this.items.length;
@@ -3271,8 +3292,8 @@ module.exports = (function() { "use strict";
 					top += ySizes[y].breadth;
 				}
 
-				item.fragment.inlineOffset = left;
-				item.fragment.blockOffset = top;
+				item.fragment.inlineOffset = left + item.hlMargin;
+				item.fragment.blockOffset = top + item.vtMargin;
 
 			}
 
@@ -3897,9 +3918,14 @@ module.exports = (function() { "use strict";
 			for(var item of this.items) {
 				
 				// firstly, compute the total breadth of the spanned tracks
-				var totalBreadth = 0;
+				var totalHorizontalBreadth = 0;
 				for(var cx = item.xStart; cx<item.xEnd; cx++) {
-					totalBreadth += xSizes[cx].breadth;
+					totalHorizontalBreadth += xSizes[cx].breadth;
+				}
+
+				var totalVerticalBreadth = 0;				
+				for(var cy = item.yStart; cy<item.yEnd; cy++) {
+					totalVerticalBreadth += ySizes[cy].breadth;
 				}
 				
 				// secondly, adapt to the alignment properties
@@ -3907,8 +3933,8 @@ module.exports = (function() { "use strict";
 				
 				// finally, set the style
 				item.fragment = yield item.element.layoutNextFragment({
-					fixedInlineSize: totalBreadth-item.hMargins,
-					fixedBlockSize: totalBreadth-item.vMargins
+					fixedInlineSize: totalHorizontalBreadth-item.hMargins,
+					fixedBlockSize: totalVerticalBreadth-item.vMargins
 				});
 				
 			}
@@ -4251,8 +4277,6 @@ require.define('src/css-grid/lib/grid-layout.js');
 
 		*layout(children, edges, constraints, styleMap) {
 
-			debugger;
-
 			//
 			// Initialize the grid layout
 			//
@@ -4264,7 +4288,7 @@ require.define('src/css-grid/lib/grid-layout.js');
 				fixedBlockSize:constraints.fixedBlockSize
 			});
 
-			grid.updateFromElement();
+			yield* grid.updateFromElement();
 			
 			//
 			// Perform the grid layout
@@ -4277,7 +4301,7 @@ require.define('src/css-grid/lib/grid-layout.js');
 			//
 			
 			return {
-				autoBlockSize: constraints.fixedInlineSize, 
+				autoBlockSize: grid.gridHeight + grid.vtPadding + grid.vbPadding, 
 				childFragments: grid.items.map(item => item.fragment)
 			};
 

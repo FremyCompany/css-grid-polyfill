@@ -23,8 +23,6 @@
 
 		*layout(children, edges, constraints, styleMap) {
 
-			debugger;
-
 			//
 			// Initialize the grid layout
 			//
@@ -36,7 +34,7 @@
 				fixedBlockSize:constraints.fixedBlockSize
 			});
 
-			grid.updateFromElement();
+			yield* grid.updateFromElement();
 			
 			//
 			// Perform the grid layout
@@ -49,7 +47,7 @@
 			//
 			
 			return {
-				autoBlockSize: constraints.fixedInlineSize, 
+				autoBlockSize: grid.gridHeight + grid.vtPadding + grid.vbPadding, 
 				childFragments: grid.items.map(item => item.fragment)
 			};
 
