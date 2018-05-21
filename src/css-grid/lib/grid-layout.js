@@ -1754,8 +1754,10 @@ module.exports = (function(window, document) { "use strict";
 			var infinity = 9999999.0;
 			var rowCount = this.growY ? this.rcMatrix.length : this.rcMatrix[0].length;
 			var colCount = this.growY ? this.rcMatrix[0].length : this.rcMatrix.length;
-			var fullWidth = this.element.offsetWidth - Math.max(0, rowCount - 1) * this.rowGap;
-			var fullHeight = this.element.offsetHeight - Math.max(0, colCount - 1) * this.colGap;
+			var fullWidth = this.element.offsetWidth;
+			var fullHeight = this.element.offsetHeight;
+			var fullDistributableWidth = fullWidth - Math.max(0, colCount - 1) * this.colGap;
+			var fullDistributableHeight = fullHeight - Math.max(0, rowCount - 1) * this.rowGap;
 			
 			///////////////////////////////////////////////////////////
 			// show child elements again
@@ -2105,7 +2107,7 @@ module.exports = (function(window, document) { "use strict";
 
 			}
 			
-			var computeTrackBreadthIncrease = function(xSizes, specifiedSizes, fullSize, getMinWidthOf, getMaxWidthOf, getXStartOf, getXEndOf) {
+			var computeTrackBreadthIncrease = function(xSizes, specifiedSizes, fullSize, fullDistributableSize, getMinWidthOf, getMaxWidthOf, getXStartOf, getXEndOf) {
 				
 				// sort rows by growth limit
 				var rows_and_limits = xSizes.map(function(item, cx) { 
@@ -2124,7 +2126,7 @@ module.exports = (function(window, document) { "use strict";
 				while(true) {
 					
 					// compute size to distribute
-					var spaceToDistribute = fullSize;
+					var spaceToDistribute = fullDistributableSize;
 					for(var cx = xSizes.length; cx--;) {
 						spaceToDistribute -= xSizes[cx].base;
 					}
@@ -2140,7 +2142,7 @@ module.exports = (function(window, document) { "use strict";
 				}
 			}
 			
-			var computeFlexibleTrackBreadth = function(xSizes, specifiedSizes, fullSize, getMinWidthOf, getMaxWidthOf, getXStartOf, getXEndOf) {
+			var computeFlexibleTrackBreadth = function(xSizes, specifiedSizes, fullSize, fullDistributableSize, getMinWidthOf, getMaxWidthOf, getXStartOf, getXEndOf) {
 				
 				// If the free space is an indefinite length: 
 				if(fullSize==0) {
@@ -2204,7 +2206,7 @@ module.exports = (function(window, document) { "use strict";
 				} else {
 				
 					// compute the leftover space
-					var spaceToDistribute = fullSize;
+					var spaceToDistribute = fullDistributableSize;
 					var tracks = []; var fractionSum = 0;
 					for(var x = xSizes.length; x--;) {
 						if(specifiedSizes[x].maxType == TRACK_BREADTH_FRACTION) {
@@ -2255,7 +2257,7 @@ module.exports = (function(window, document) { "use strict";
 				}
 			}
 			
-			var computeFinalTrackBreadth = function(xSizes, this_xSizes, fullWidth, getMinWidthOf, getMaxWidthOf, getXStartOf, getXEndOf) {
+			var computeFinalTrackBreadth = function(xSizes, this_xSizes, fullWidth, fullDistributableWidth, getMinWidthOf, getMaxWidthOf, getXStartOf, getXEndOf) {
 				
 				// compute base and limit
 				computeTrackBreadth.call(
@@ -2279,6 +2281,7 @@ module.exports = (function(window, document) { "use strict";
 					xSizes,
 					this_xSizes,
 					fullWidth,
+					fullDistributableWidth,
 					getMinWidthOf,
 					getMaxWidthOf,
 					getXStartOf,
@@ -2291,6 +2294,7 @@ module.exports = (function(window, document) { "use strict";
 					xSizes,
 					this_xSizes,
 					fullWidth,
+					fullDistributableWidth,					
 					getMinWidthOf,
 					getMaxWidthOf,
 					getXStartOf,
@@ -2304,6 +2308,7 @@ module.exports = (function(window, document) { "use strict";
 			///////////////////////////////////////////////////////////
 			var mode = 'x';
 			var fullSize = fullWidth;
+			var fullDistributableSize = fullDistributableWidth;
 			var xSizes = this.xSizes.map(initializeFromConstraints);
 			var colGap = this.colGap;
 
@@ -2318,6 +2323,7 @@ module.exports = (function(window, document) { "use strict";
 				xSizes,
 				this.xSizes,
 				fullWidth,
+				fullDistributableWidth,				
 				getMinWidthOf,
 				getMaxWidthOf,
 				getXStartOf,
@@ -2359,6 +2365,7 @@ module.exports = (function(window, document) { "use strict";
 			///////////////////////////////////////////////////////////
 			var mode = 'y';
 			var fullSize = fullHeight;
+			var fullDistributableSize = fullDistributableHeight;
 			var ySizes = this.ySizes.map(initializeFromConstraints);
 			var rowGap = this.rowGap;
 
@@ -2372,6 +2379,7 @@ module.exports = (function(window, document) { "use strict";
 				ySizes,
 				this.ySizes,
 				fullHeight,
+				fullDistributableHeight,				
 				getMinHeightOf,
 				getMaxHeightOf,
 				getYStartOf,
