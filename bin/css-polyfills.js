@@ -1,4 +1,4 @@
-/*! CSS-POLYFILLS - v0.1.0 - 2018-05-21 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2018 François REMY; MIT-Licensed !*/
+/*! CSS-POLYFILLS - v0.1.0 - 2018-05-24 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2018 François REMY; MIT-Licensed !*/
 
 !(function() { 'use strict';
     var module = { exports:{} };
@@ -5489,8 +5489,8 @@ module.exports = (function(window, document) { "use strict";
 			var colCount = this.growY ? this.rcMatrix[0].length : this.rcMatrix.length;
 			var fullWidth = this.element.offsetWidth;
 			var fullHeight = this.element.offsetHeight;
-			var fullDistributableWidth = fullWidth - Math.max(0, colCount - 1) * this.colGap;
-			var fullDistributableHeight = fullHeight - Math.max(0, rowCount - 1) * this.rowGap;
+			var fullDistributableWidth = Math.max(0, fullWidth - Math.max(0, colCount - 1) * this.colGap);
+			var fullDistributableHeight = Math.max(0, fullHeight - Math.max(0, rowCount - 1) * this.rowGap);
 			
 			///////////////////////////////////////////////////////////
 			// show child elements again
@@ -6102,8 +6102,8 @@ module.exports = (function(window, document) { "use strict";
 			var ySizes = this.ySizes.map(initializeFromConstraints);
 			var rowGap = this.rowGap;
 
-			var getMinHeightOf = function(item) { return item.minHeight + item.vMargins - Math.max(0, item.yEnd - item.yStart - 1) * rowGap; };
-			var getMaxHeightOf = function(item) { return item.maxHeight + item.vMargins - Math.max(0, item.yEnd - item.yStart - 1) * rowGap; };
+			var getMinHeightOf = function(item) { return item.element.offsetHeight + item.vMargins - Math.max(0, item.yEnd - item.yStart - 1) * rowGap; };
+			var getMaxHeightOf = function(item) { return item.element.offsetHeight + item.vMargins - Math.max(0, item.yEnd - item.yStart - 1) * rowGap; };
 			var getYStartOf = function(item) { return item.yStart; };
 			var getYEndOf = function(item) { return item.yEnd; };
 			
