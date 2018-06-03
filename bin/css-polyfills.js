@@ -1,4 +1,4 @@
-/*! CSS-POLYFILLS - v0.1.0 - 2015-08-02 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2015 François REMY; MIT-Licensed !*/
+/*! CSS-POLYFILLS - v0.1.0 - 2018-05-24 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2018 François REMY; MIT-Licensed !*/
 
 !(function() { 'use strict';
     var module = { exports:{} };
@@ -3660,7 +3660,7 @@ module.exports = (function(window, document) {
 			opts = opts || {};
 
 			// get the box from which to compute the percentages
-			var box = e ? cssUtils.getBox(e, opts.boxType) : {
+			var box = e ? getBox(e, opts.boxType) : {
 				top: 0,
 				left: 0,
 				width: 0,
@@ -3699,7 +3699,7 @@ module.exports = (function(window, document) {
 			opts = opts || {};
 
 			// get the box from which to compute the percentages
-			var box = e ? cssUtils.getBox(e, opts.boxType) : {
+			var box = e ? getBox(e, opts.boxType) : {
 				top: 0,
 				left: 0,
 				width: 0,
@@ -4257,6 +4257,8 @@ module.exports = (function(window, document) { "use strict";
 			this.hrPadding = 0;
 			this.vtPadding = 0;
 			this.vbPadding = 0;
+			this.rowGap = 0;
+			this.colGap = 0;
 			
 			// computed
 			this.xLines = []; // array of array of names
@@ -4370,6 +4372,9 @@ module.exports = (function(window, document) { "use strict";
 				}
 				
 			}
+			if(cssText=style["grid-row-gap"]) { this.parseGridRowGap(cssText); }
+			if(cssText=style["grid-column-gap"]) { this.parseGridColumnGap(cssText); }
+			if(cssText=style["grid-gap"]) { this.parseGridGap(cssText); }
 			
 			var usedStyle = style;
 			this.hlPadding = parseInt(usedStyle.getPropertyValue('border-left-width')) + parseInt(usedStyle.getPropertyValue('padding-left'));
@@ -4722,6 +4727,20 @@ module.exports = (function(window, document) { "use strict";
 			if(rowsTemplate   ) this.parseRowsTemplate(rowsTemplate);
 			if(columnsTemplate) this.parseColumnsTemplate(columnsTemplate);
 			if(areasTemplate  ) this.parseAreasTemplate(areasTemplate);
+		},
+
+		parseGridRowGap: function(cssText) {
+			this.rowGap = cssUnits.convertToPixels(cssText, this.element, { isHeightRelated: true });
+		},
+
+		parseGridColumnGap: function(cssText) {
+			this.colGap = cssUnits.convertToPixels(cssText, this.element, { isWidthRelated: true });
+		},
+
+		parseGridGap: function(cssText) {
+			var values = cssText.trim().split(/\s+/);
+			this.parseGridRowGap(values[0]);
+			this.parseGridColumnGap(values[1] || cssText);
 		},
 		
 		buildExplicitMatrix: function() {
@@ -5466,8 +5485,12 @@ module.exports = (function(window, document) { "use strict";
 			///////////////////////////////////////////////////////////
 			var LIMIT_IS_INFINITE = 1;		
 			var infinity = 9999999.0;
+			var rowCount = this.growY ? this.rcMatrix.length : this.rcMatrix[0].length;
+			var colCount = this.growY ? this.rcMatrix[0].length : this.rcMatrix.length;
 			var fullWidth = this.element.offsetWidth;
 			var fullHeight = this.element.offsetHeight;
+			var fullDistributableWidth = Math.max(0, fullWidth - Math.max(0, colCount - 1) * this.colGap);
+			var fullDistributableHeight = Math.max(0, fullHeight - Math.max(0, rowCount - 1) * this.rowGap);
 			
 			///////////////////////////////////////////////////////////
 			// show child elements again
@@ -5817,7 +5840,7 @@ module.exports = (function(window, document) { "use strict";
 
 			}
 			
-			var computeTrackBreadthIncrease = function(xSizes, specifiedSizes, fullSize, getMinWidthOf, getMaxWidthOf, getXStartOf, getXEndOf) {
+			var computeTrackBreadthIncrease = function(xSizes, specifiedSizes, fullSize, fullDistributableSize, getMinWidthOf, getMaxWidthOf, getXStartOf, getXEndOf) {
 				
 				// sort rows by growth limit
 				var rows_and_limits = xSizes.map(function(item, cx) { 
@@ -5836,7 +5859,7 @@ module.exports = (function(window, document) { "use strict";
 				while(true) {
 					
 					// compute size to distribute
-					var spaceToDistribute = fullSize;
+					var spaceToDistribute = fullDistributableSize;
 					for(var cx = xSizes.length; cx--;) {
 						spaceToDistribute -= xSizes[cx].base;
 					}
@@ -5852,7 +5875,7 @@ module.exports = (function(window, document) { "use strict";
 				}
 			}
 			
-			var computeFlexibleTrackBreadth = function(xSizes, specifiedSizes, fullSize, getMinWidthOf, getMaxWidthOf, getXStartOf, getXEndOf) {
+			var computeFlexibleTrackBreadth = function(xSizes, specifiedSizes, fullSize, fullDistributableSize, getMinWidthOf, getMaxWidthOf, getXStartOf, getXEndOf) {
 				
 				// If the free space is an indefinite length: 
 				if(fullSize==0) {
@@ -5916,7 +5939,7 @@ module.exports = (function(window, document) { "use strict";
 				} else {
 				
 					// compute the leftover space
-					var spaceToDistribute = fullSize;
+					var spaceToDistribute = fullDistributableSize;
 					var tracks = []; var fractionSum = 0;
 					for(var x = xSizes.length; x--;) {
 						if(specifiedSizes[x].maxType == TRACK_BREADTH_FRACTION) {
@@ -5967,7 +5990,7 @@ module.exports = (function(window, document) { "use strict";
 				}
 			}
 			
-			var computeFinalTrackBreadth = function(xSizes, this_xSizes, fullWidth, getMinWidthOf, getMaxWidthOf, getXStartOf, getXEndOf) {
+			var computeFinalTrackBreadth = function(xSizes, this_xSizes, fullWidth, fullDistributableWidth, getMinWidthOf, getMaxWidthOf, getXStartOf, getXEndOf) {
 				
 				// compute base and limit
 				computeTrackBreadth.call(
@@ -5991,6 +6014,7 @@ module.exports = (function(window, document) { "use strict";
 					xSizes,
 					this_xSizes,
 					fullWidth,
+					fullDistributableWidth,
 					getMinWidthOf,
 					getMaxWidthOf,
 					getXStartOf,
@@ -6003,6 +6027,7 @@ module.exports = (function(window, document) { "use strict";
 					xSizes,
 					this_xSizes,
 					fullWidth,
+					fullDistributableWidth,					
 					getMinWidthOf,
 					getMaxWidthOf,
 					getXStartOf,
@@ -6016,10 +6041,12 @@ module.exports = (function(window, document) { "use strict";
 			///////////////////////////////////////////////////////////
 			var mode = 'x';
 			var fullSize = fullWidth;
+			var fullDistributableSize = fullDistributableWidth;
 			var xSizes = this.xSizes.map(initializeFromConstraints);
-			
-			var getMinWidthOf = function(item) { return item.minWidth+item.hMargins; };
-			var getMaxWidthOf = function(item) { return item.maxWidth+item.hMargins; };
+			var colGap = this.colGap;
+
+			var getMinWidthOf = function(item) { return item.minWidth + item.hMargins - Math.max(0, item.xEnd - item.xStart - 1) * colGap; };
+			var getMaxWidthOf = function(item) { return item.maxWidth + item.hMargins - Math.max(0, item.xEnd - item.xStart - 1) * colGap; };
 			var getXStartOf = function(item) { return item.xStart; }; 
 			var getXEndOf = function(item) { return item.xEnd; };
 			
@@ -6029,6 +6056,7 @@ module.exports = (function(window, document) { "use strict";
 				xSizes,
 				this.xSizes,
 				fullWidth,
+				fullDistributableWidth,				
 				getMinWidthOf,
 				getMaxWidthOf,
 				getXStartOf,
@@ -6070,10 +6098,12 @@ module.exports = (function(window, document) { "use strict";
 			///////////////////////////////////////////////////////////
 			var mode = 'y';
 			var fullSize = fullHeight;
+			var fullDistributableSize = fullDistributableHeight;
 			var ySizes = this.ySizes.map(initializeFromConstraints);
-			
-			var getMinHeightOf = function(item) { return item.element.offsetHeight+item.vMargins; };
-			var getMaxHeightOf = function(item) { return item.element.offsetHeight+item.vMargins; };
+			var rowGap = this.rowGap;
+
+			var getMinHeightOf = function(item) { return item.element.offsetHeight + item.vMargins - Math.max(0, item.yEnd - item.yStart - 1) * rowGap; };
+			var getMaxHeightOf = function(item) { return item.element.offsetHeight + item.vMargins - Math.max(0, item.yEnd - item.yStart - 1) * rowGap; };
 			var getYStartOf = function(item) { return item.yStart; };
 			var getYEndOf = function(item) { return item.yEnd; };
 			
@@ -6082,6 +6112,7 @@ module.exports = (function(window, document) { "use strict";
 				ySizes,
 				this.ySizes,
 				fullHeight,
+				fullDistributableHeight,				
 				getMinHeightOf,
 				getMaxHeightOf,
 				getYStartOf,
@@ -6140,11 +6171,13 @@ module.exports = (function(window, document) { "use strict";
 			for(var x = 0; x<xSizes.length; x++) {
 				grid_width += xSizes[x].breadth;
 			}
+			grid_width += this.colGap * (xSizes.length - 1);
 			
 			var grid_height = 0;
 			for(var y = 0; y<ySizes.length; y++) {
 				grid_height += ySizes[y].breadth;
 			}
+			grid_height += this.rowGap * (ySizes.length - 1);
 			
 			var runtimeStyleData = {};
 			if(["block","inline-block"].indexOf(usedStyle.getPropertyValue("display")) == -1) {
@@ -6167,22 +6200,26 @@ module.exports = (function(window, document) { "use strict";
 				for(var x = 0; x<item.xStart; x++) {
 					left += xSizes[x].breadth;
 				}
+				left += this.colGap * item.xStart;
 				
 				var width = 0;
 				for(var x = item.xStart; x<item.xEnd; x++) {
 					width += xSizes[x].breadth;
 				}
+				width += Math.max(0, item.xEnd - item.xStart - 1) * this.colGap;
 				
 				var top = this.vtPadding;
 				for(var y = 0; y<item.yStart; y++) {
 					top += ySizes[y].breadth;
 				}
+				top += this.rowGap * item.yStart;
 				
 				var height = 0;
 				for(var y = item.yStart; y<item.yEnd; y++) {
 					height += ySizes[y].breadth;
 				}
-					
+				height += Math.max(0, item.yEnd - item.yStart - 1) * this.rowGap;
+				
 				
 				runtimeStyle.set(item.element, {
 					"position"    : "absolute",
@@ -6546,7 +6583,7 @@ require.define('src/css-grid/lib/grid-layout.js');
 		// those properties can now be set using Element.myStyle.xyz if they weren't already
 		//
 		
-		var gridProperties = ['grid','grid-template','grid-template-rows','grid-template-columns','grid-template-areas','grid-areas','grid-auto-flow'];
+		var gridProperties = ['grid','grid-template','grid-template-rows','grid-template-columns','grid-template-areas','grid-areas','grid-auto-flow','grid-row-gap','grid-column-gap','grid-gap'];
 		var gridItemProperties = ['grid-area','grid-row','grid-column','grid-row-start','grid-row-end','grid-column-start','grid-column-end','order'];
 		for(var i=gridProperties.length; i--;)     { cssCascade.polyfillStyleInterface(gridProperties[i]); }
 		for(var i=gridItemProperties.length; i--;) { cssCascade.polyfillStyleInterface(gridItemProperties[i]); }

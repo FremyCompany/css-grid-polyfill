@@ -61,7 +61,7 @@ module.exports = (function(window, document) {
 			opts = opts || {};
 
 			// get the box from which to compute the percentages
-			var box = e ? cssUtils.getBox(e, opts.boxType) : {
+			var box = e ? getBox(e, opts.boxType) : {
 				top: 0,
 				left: 0,
 				width: 0,
@@ -100,7 +100,7 @@ module.exports = (function(window, document) {
 			opts = opts || {};
 
 			// get the box from which to compute the percentages
-			var box = e ? cssUtils.getBox(e, opts.boxType) : {
+			var box = e ? getBox(e, opts.boxType) : {
 				top: 0,
 				left: 0,
 				width: 0,
