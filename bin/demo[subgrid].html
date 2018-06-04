@@ -1,0 +1,35 @@
+<!doctype html>
+
+<script src="css-polyfills-import.js"></script>
+<style>
+    /* hack to handle the fact we can't get max-width yet */
+    span { white-space: nowrap; }
+</style>
+
+<div style="display: layout(grid); --grid-template-columns: auto 1fr;">
+    <div style="background: cyan; --grid-column: 1 / span 2">Header</div>
+    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 1</span><input /></label>
+    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 2</span><input /></label>
+    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 3</span><input /></label>
+    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 4</span><input /></label>
+    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 5</span><input /></label>
+    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 6</span><input /></label>
+    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 7</span><input /></label>
+    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 8</span><input /></label>
+    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 9</span><input /></label>
+    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 10</span><input /></label>
+</div><br/>
+
+<div style="display: layout(grid); width: 250px; --grid-template-columns: auto 1fr;">
+    <div style="background: cyan; --grid-column: 1 / span 2">Header</div>
+    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 1</span><input /></label>
+    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 2</span><input /></label>
+    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 3</span><input /></label>
+    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 4</span><input /></label>
+    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 5</span><input /></label>
+    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 6</span><input /></label>
+    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 7</span><input /></label>
+    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 8</span><input /></label>
+    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 9</span><input /></label>
+    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 10</span><input /></label>
+</div><br/>

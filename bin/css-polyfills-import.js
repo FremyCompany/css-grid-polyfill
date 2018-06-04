@@ -1,1 +1,2 @@
 CSS.layoutWorklet.addModule('css-polyfills.js');
+document.write(`<style>* { ${ ['--grid','--grid-template','--grid-template-rows','--grid-template-columns','--grid-template-areas','--grid-areas','--grid-auto-flow','--grid-area','--grid-row','--grid-column','--grid-row-start','--grid-row-end','--grid-column-start','--grid-column-end'].join(':initial; ') }:unset; }</style>`)

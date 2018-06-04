@@ -15,13 +15,13 @@ module.exports = (function() {
 			//
 			// return the result
 			//
-			return Math.max(fragment.inlineSize, 25); // TODO: remove this when Ian fixes Blink
+			return fragment.inlineSize;
 
 		},
 		
 		maxWidthOf: function*(element) {
 
-			return infinity; // TODO: remove this when Ian fixes Blink
+			return yield* this.minWidthOf(element); // TODO: remove this when Ian fixes Blink
 		
 			//
 			// make the parent a relative container (if necessary)

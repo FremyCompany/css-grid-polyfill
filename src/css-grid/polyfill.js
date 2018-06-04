@@ -6,7 +6,7 @@
 	var cssGrid = require('lib/grid-layout');
 	console.log("css-grid-polyfill");
 
-	var layoutProperties = ['box-sizing','margin-left','margin-right','margin-top','margin-bottom','padding-left','padding-right','padding-top','padding-bottom','border-left-width','border-right-width','border-top-width','border-bottom-width'];
+	var layoutProperties = ['display','position','box-sizing','margin-left','margin-right','margin-top','margin-bottom','padding-left','padding-right','padding-top','padding-bottom','border-left-width','border-right-width','border-top-width','border-bottom-width'];
 	registerLayout('grid', class GridLayout {
 		
 		//
@@ -34,8 +34,18 @@
 				fixedBlockSize:constraints.fixedBlockSize
 			});
 
-			yield* grid.updateFromElement();
+			//
+			// Get data from parent
+			// 
 			
+			var parentGridData = constraints.data ? constraints.data.parentGridData : null;
+
+			//
+			// Prepare the grid layout
+			//
+
+			yield* grid.updateFromElement(parentGridData);
+
 			//
 			// Perform the grid layout
 			// 
@@ -46,9 +56,27 @@
 			// Return the layout results
 			//
 			
+			var dataForParentGrid = null;
+			if(parentGridData && (grid.isSubgridX||grid.isSubgridY)) {
+				// prepare the items for copy, because @bfgeek isn't a merciful god
+				let grid_items = grid.items.map(item => Object.assign({}, item, { element:undefined, parentGrid:undefined, fragment:{blockSize:item.fragment.blockSize} }));
+				dataForParentGrid = {
+					items: grid_items,
+					xSizes: grid.xSizes,
+					ySizes: grid.ySizes
+				};
+			}
+
+			console.log({
+				autoBlockSize: grid.gridHeight + grid.vtPadding + grid.vbPadding, 
+				childFragments: grid.items.map(item => item.fragment).filter(fragment => fragment instanceof LayoutFragment),
+				data: { dataForParentGrid }
+			});
+
 			return {
 				autoBlockSize: grid.gridHeight + grid.vtPadding + grid.vbPadding, 
-				childFragments: grid.items.map(item => item.fragment)
+				childFragments: grid.items.map(item => item.fragment).filter(fragment => fragment instanceof LayoutFragment),
+				data: { dataForParentGrid }
 			};
 
 		}
