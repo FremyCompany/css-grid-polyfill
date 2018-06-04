@@ -2,34 +2,52 @@
 
 <script src="css-polyfills-import.js"></script>
 <style>
-    /* hack to handle the fact we can't get max-width yet */
-    span { white-space: nowrap; }
+    section {
+        display: layout(grid); --grid-template-columns: auto 1fr;
+    }
+    section > * {
+        --grid-column: 1 / span 2;
+    }
+    section > h1 {
+        background: cyan;
+    }
+    section > label {
+        display: layout(grid); --grid-template-columns: subgrid; 
+        border: 5px solid yellow;
+        padding: 5px;
+    }
+    section > label > span { 
+        padding-right: 10px;
+        white-space: nowrap; /* hack to handle the fact we can't get the max-width in the CSS Houdini Layout API yet */
+    }
 </style>
 
-<div style="display: layout(grid); --grid-template-columns: auto 1fr;">
-    <div style="background: cyan; --grid-column: 1 / span 2">Header</div>
-    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 1</span><input /></label>
-    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 2</span><input /></label>
-    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 3</span><input /></label>
-    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 4</span><input /></label>
-    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 5</span><input /></label>
-    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 6</span><input /></label>
-    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 7</span><input /></label>
-    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 8</span><input /></label>
-    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 9</span><input /></label>
-    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 10</span><input /></label>
-</div><br/>
+<section>
+    <h1>First set of properties</h1>
+    <label><span>Property 1</span><input /></label>
+    <label><span>Property 2</span><input /></label>
+    <label><span>Property 3</span><input /></label>
+    <label><span>Property 4</span><input /></label>
+    <label><span>Property 5</span><input /></label>
+    <h1>Second set of properties</h1>
+    <label><span>Property 6</span><input /></label>
+    <label><span>Property 7</span><input /></label>
+    <label><span>Property 8</span><input /></label>
+    <label><span>Property 9</span><input /></label>
+    <label><span>Property 10</span><input /></label>
+</section><br/>
 
-<div style="display: layout(grid); width: 250px; --grid-template-columns: auto 1fr;">
-    <div style="background: cyan; --grid-column: 1 / span 2">Header</div>
-    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 1</span><input /></label>
-    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 2</span><input /></label>
-    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 3</span><input /></label>
-    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 4</span><input /></label>
-    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 5</span><input /></label>
-    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 6</span><input /></label>
-    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 7</span><input /></label>
-    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 8</span><input /></label>
-    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 9</span><input /></label>
-    <label style="display: layout(grid); border: 5px solid yellow; --grid-template-columns: subgrid; --grid-column: 1 / span 2"><span>Property 10</span><input /></label>
+<section style="width: 250px;">
+    <h1>First set of properties</h1>
+    <label><span>Property 1</span><input /></label>
+    <label><span>Property 2</span><input /></label>
+    <label><span>Property 3</span><input /></label>
+    <label><span>Property 4</span><input /></label>
+    <label><span>Property 5</span><input /></label>
+    <h1>Second set of properties</h1>
+    <label><span>Property 6</span><input /></label>
+    <label><span>Property 7</span><input /></label>
+    <label><span>Property 8</span><input /></label>
+    <label><span>Property 9</span><input /></label>
+    <label><span>Property 10</span><input /></label>
 </div><br/>
