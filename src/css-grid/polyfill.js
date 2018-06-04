@@ -67,11 +67,11 @@
 				};
 			}
 
-			console.log({
+			/*console.log({
 				autoBlockSize: grid.gridHeight + grid.vtPadding + grid.vbPadding, 
 				childFragments: grid.items.map(item => item.fragment).filter(fragment => fragment instanceof LayoutFragment),
 				data: { dataForParentGrid }
-			});
+			});*/
 
 			return {
 				autoBlockSize: grid.gridHeight + grid.vtPadding + grid.vbPadding, 
