@@ -1,4 +1,4 @@
-/*! CSS-POLYFILLS - v0.1.0 - 2018-05-24 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2018 François REMY; MIT-Licensed !*/
+/*! CSS-POLYFILLS - v0.1.0 - 2019-01-07 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2019 François REMY; MIT-Licensed !*/
 
 !(function() { 'use strict';
     var module = { exports:{} };
@@ -5487,8 +5487,8 @@ module.exports = (function(window, document) { "use strict";
 			var infinity = 9999999.0;
 			var rowCount = this.growY ? this.rcMatrix.length : this.rcMatrix[0].length;
 			var colCount = this.growY ? this.rcMatrix[0].length : this.rcMatrix.length;
-			var fullWidth = this.element.offsetWidth;
-			var fullHeight = this.element.offsetHeight;
+			var fullWidth = this.element.offsetWidth - this.hlPadding - this.hrPadding;
+			var fullHeight = this.element.offsetHeight - this.vtPadding - this.vbPadding;
 			var fullDistributableWidth = Math.max(0, fullWidth - Math.max(0, colCount - 1) * this.colGap);
 			var fullDistributableHeight = Math.max(0, fullHeight - Math.max(0, rowCount - 1) * this.rowGap);
 			
