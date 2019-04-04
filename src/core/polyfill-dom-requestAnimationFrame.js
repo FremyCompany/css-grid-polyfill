@@ -34,7 +34,7 @@ void function() {
 	// setImmediate
 	if(!window.setImmediate) {
 		window.setImmediate = function(f) { return setTimeout(f, 0) };
-		window.cancelImmediate = clearTimeout;
+		window.cancelImmediate = window.clearImmediate = clearTimeout;
 	}
 	
 }();
