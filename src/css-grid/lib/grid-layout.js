@@ -690,8 +690,13 @@ module.exports = (function(window, document) { "use strict";
 				
 				return { type: TRACK_BREADTH_PERCENTAGE, value:cssToken.value };
 				
+			} else if(cssToken instanceof cssSyntax.NumberToken && cssToken.value === 0) {
+				
+				return { type: TRACK_BREADTH_LENGTH, value: 0 };
+				
 			} else {
 				
+				console.warn("This token could not be parsed:", cssToken.toCSSString());
 				// TODO: recognize "calc()", too
 				
 			}
