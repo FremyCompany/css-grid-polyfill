@@ -1,4 +1,4 @@
-/*! CSS-POLYFILLS - v0.1.0 - 2019-01-07 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2019 François REMY; MIT-Licensed !*/
+/*! CSS-POLYFILLS - v0.1.0 - 2021-03-08 - https://github.com/FremyCompany/css-polyfills - Copyright (c) 2021 François REMY; MIT-Licensed !*/
 
 !(function() { 'use strict';
     var module = { exports:{} };
@@ -118,7 +118,7 @@ void function() {
 	// setImmediate
 	if(!window.setImmediate) {
 		window.setImmediate = function(f) { return setTimeout(f, 0) };
-		window.cancelImmediate = clearTimeout;
+		window.cancelImmediate = window.clearImmediate = clearTimeout;
 	}
 	
 }();
@@ -4423,8 +4423,13 @@ module.exports = (function(window, document) { "use strict";
 				
 				return { type: TRACK_BREADTH_PERCENTAGE, value:cssToken.value };
 				
+			} else if(cssToken instanceof cssSyntax.NumberToken && cssToken.value === 0) {
+				
+				return { type: TRACK_BREADTH_LENGTH, value: 0 };
+				
 			} else {
 				
+				console.warn("This token could not be parsed:", cssToken.toCSSString());
 				// TODO: recognize "calc()", too
 				
 			}
